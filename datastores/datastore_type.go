@@ -41,16 +41,12 @@ func (d *Datastore) GetDatastore() (EnumDatastores, error) {
 	switch d.Datastore {
 	case "candidate":
 		rd = CANDIDATE
-		break
 	case "running":
 		rd = RUNNING
-		break
 	case "state":
 		rd = STATE
-		break
 	case "tools":
 		rd = TOOLS
-		break
 	default:
 		return rd, fmt.Errorf("datastore isn't set properly, while should be CANDIDATE / RUNNING / STATE / TOOLS")
 	}
@@ -61,18 +57,21 @@ func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 	switch rd {
 	case CANDIDATE:
 		d.Datastore = "candidate"
-		break
 	case RUNNING:
 		d.Datastore = "running"
-		break
 	case STATE:
 		d.Datastore = "state"
-		break
 	case TOOLS:
 		d.Datastore = "tools"
-		break
 	default:
 		return fmt.Errorf("datastore provided isn't correct, while should be CANDIDATE / RUNNING / STATE / TOOLS")
 	}
 	return nil
+}
+
+func (m *Datastore) DatastoreName() string {
+	if m.Datastore == "" {
+		return "CANDIDATE"
+	}
+	return m.Datastore
 }

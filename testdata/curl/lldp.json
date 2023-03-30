@@ -1,0 +1,14 @@
+{
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "get",
+    "params": {
+        "commands": [
+            {
+                "path": "/system/lldp",
+                "datastore": "state",
+                "recursive": true
+            }
+        ]
+    }
+}

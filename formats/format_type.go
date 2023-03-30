@@ -35,16 +35,12 @@ func (of *OutputFormat) GetFormat() (EnumOutputFormats, error) {
 	switch of.OutputFormat {
 	case "json":
 		rf = JSON
-		break
 	case "xml":
 		rf = XML
-		break
 	case "table":
 		rf = TABLE
-		break
 	case "":
 		rf = JSON
-		break
 	default:
 		return rf, fmt.Errorf("output format isn't set properly, while should be JSON / XML / TABLE")
 	}
@@ -55,13 +51,10 @@ func (of *OutputFormat) SetFormat(ofs EnumOutputFormats) error {
 	switch ofs {
 	case JSON:
 		of.OutputFormat = "json"
-		break
 	case XML:
 		of.OutputFormat = "xml"
-		break
 	case TABLE:
 		of.OutputFormat = "table"
-		break
 	default:
 		return fmt.Errorf("output format provided isn't correct, while should be JSON / XML / TABLE")
 	}

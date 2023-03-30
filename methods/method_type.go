@@ -42,16 +42,12 @@ func (m *Method) GetMethod() (EnumMethods, error) {
 	switch m.Method {
 	case "get":
 		rm = GET
-		break
 	case "set":
 		rm = SET
-		break
 	case "cli":
 		rm = CLI
-		break
 	case "validate":
 		rm = VALIDATE
-		break
 	default:
 		return rm, fmt.Errorf("method isn't set properly, while should be GET / SET / CLI / VALIDATE")
 	}
@@ -62,16 +58,12 @@ func (m *Method) SetMethod(rm EnumMethods) error {
 	switch rm {
 	case GET:
 		m.Method = "get"
-		break
 	case SET:
 		m.Method = "set"
-		break
 	case CLI:
 		m.Method = "cli"
-		break
 	case VALIDATE:
 		m.Method = "validate"
-		break
 	default:
 		return fmt.Errorf("method provided isn't correct, while should be GET / SET / CLI / VALIDATE")
 	}

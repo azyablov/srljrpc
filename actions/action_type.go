@@ -22,6 +22,7 @@ const (
 	REPLACE        EnumActions = iota + 1
 	UPDATE
 	DELETE
+	NONE
 )
 
 // note for action "Conditional mandatory; used with the set and validate methods."
@@ -41,15 +42,14 @@ func (a *Action) GetAction() (EnumActions, error) {
 	switch a.Action {
 	case "replace":
 		ra = REPLACE
-		break
 	case "update":
 		ra = UPDATE
-		break
 	case "delete":
 		ra = DELETE
-		break
+	case "none":
+		ra = NONE
 	default:
-		return ra, fmt.Errorf("action isn't set properly, while should be REPLACE / UPDATE / DELETE")
+		return ra, fmt.Errorf("action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET")
 	}
 	return ra, nil
 }
@@ -58,15 +58,14 @@ func (a *Action) SetAction(ra EnumActions) error {
 	switch ra {
 	case DELETE:
 		a.Action = "delete"
-		break
 	case REPLACE:
 		a.Action = "replace"
-		break
 	case UPDATE:
 		a.Action = "update"
-		break
+	case NONE:
+		a.Action = "NONE"
 	default:
-		return fmt.Errorf("action provided isn't correct, while should be REPLACE / UPDATE / DELETE")
+		return fmt.Errorf("action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET")
 	}
 	return nil
 }
