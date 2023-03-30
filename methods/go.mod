@@ -1,3 +1,3 @@
-module github.com/azyablov/srl-json-rpc/methods
+module github.com/azyablov/srljrpc/methods
 
 go 1.18

@@ -1,3 +1,3 @@
-module github.com/azyablov/srl-json-rpc/actions
+module github.com/azyablov/srljrpc/actions
 
 go 1.18

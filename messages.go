@@ -1,4 +1,4 @@
-package jsonrpc
+package srljrpc
 
 import (
 	"encoding/json"
@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azyablov/srl-json-rpc/actions"
-	"github.com/azyablov/srl-json-rpc/datastores"
-	"github.com/azyablov/srl-json-rpc/formats"
-	"github.com/azyablov/srl-json-rpc/methods"
+	"github.com/azyablov/srljrpc/actions"
+	"github.com/azyablov/srljrpc/datastores"
+	"github.com/azyablov/srljrpc/formats"
+	"github.com/azyablov/srljrpc/methods"
 )
 
 // note for Command "Mandatory. List of commands used to execute against the called method. Multiple commands can be executed with a single request."
@@ -143,8 +143,10 @@ type Params struct {
 	*formats.OutputFormat
 }
 
-func (p *Params) appendCommands(commands []Command) {
-	p.Commands = append(p.Commands, commands...)
+func (p *Params) appendCommands(commands *[]interface{}) {
+	for _, c := range *commands {
+		p.Commands = append(p.Commands, c.(Command))
+	}
 }
 
 func (p *Params) getCmds() *[]Command {
@@ -166,6 +168,28 @@ type RpcError struct {
 	ID      int    `json:"id"`
 	Message string `json:"message"`
 	Data    string `json:"data,omitempty"`
+}
+
+// note for Response "JSON RPC response message. When a rpc call is made, the Server MUST reply with a Response, except for in the case of Notifications. The Response is expressed as a single JSON Object."
+//
+//	class Response {
+//		<<message>>
+//		note "Mandatory. Version, which must be ‟2.0”. No other JSON RPC versions are currently supported."
+//		~string JSONRpcVersion
+//		note "Mandatory. Client-provided integer. The JSON RPC responds with the same ID, which allows the client to match requests to responses when there are concurrent requests."
+//		~int ID
+//		note "This member is REQUIRED on success. This member MUST NOT exist if there was an error invoking the method. The value of this member is determined by the method invoked on the Server."
+//		+jsonRawMessage Result
+//		note "This member is REQUIRED on error. This member MUST NOT exist if there was no error triggered during invocation. The value for this member MUST be an Object as defined in section 5.1."
+//		+RpcError Error
+//	}
+//
+// Response o-- RpcError
+type Response struct {
+	JSONRpcVersion string          `json:"jsonrpc"`
+	ID             int             `json:"id"`
+	Result         json.RawMessage `json:"result,omitempty"`
+	Error          *RpcError       `json:"error,omitempty"`
 }
 
 // note for Request "JSON RPC Request: get / set / validate"
@@ -222,7 +246,7 @@ type Requester interface {
 	MethodName() string
 	GetID() int
 	SetOutputFormat(of formats.EnumOutputFormats) error
-	appendCommands([]Command)
+	appendCommands(commands *[]interface{})
 	setID(int)
 }
 
@@ -309,7 +333,7 @@ func apply_cmds(r *Request, cmds []Command) error {
 		return fmt.Errorf("method %s not supported by Request", r.Method.MethodName())
 	}
 	// checks passed, append commands to request
-	r.appendCommands(cmds)
+	r.appendCommands(&cmds)
 	return nil
 }
 
@@ -335,8 +359,10 @@ type CLIParams struct {
 	*formats.OutputFormat
 }
 
-func (p *CLIParams) appendCommands(commands []string) {
-	p.Commands = append(p.Commands, commands...)
+func (p *CLIParams) appendCommands(commands interface{}) {
+	for _, c := range commands {
+		p.Commands = append(p.Commands, c.(string))
+	}
 }
 
 func (p *CLIParams) getCmds() *[]string {
@@ -405,7 +431,8 @@ func NewCLIRequest(cmds []string, opts ...RequestOption) (*CLIRequest, error) {
 	r.setID(id)
 
 	// set commands
-	r.appendCommands(cmds)
+	var test []string = []string{"show", "version"}
+	r.appendCommands(test)
 
 	// apply options to request
 	err = apply_opts(r, opts)

@@ -1,3 +1,3 @@
-module github.com/azyablov/srl-json-rpc/datastores
+module github.com/azyablov/srljrpc/datastores
 
 go 1.18
