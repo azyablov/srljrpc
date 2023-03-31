@@ -1,8 +1,0 @@
-github.com/azyablov/srljrpc/actions v0.0.0-20230330175244-2d37b4ad1276 h1:cggj3m1JSDjIKDT1BTPnUR+U+7LRWEUzr1QnHXu0qgA=
-github.com/azyablov/srljrpc/actions v0.0.0-20230330175244-2d37b4ad1276/go.mod h1:TPyxGR81UjOvmcQ3BJD/Hxc4PIGO89ilu2v37kHw/J8=
-github.com/azyablov/srljrpc/datastores v0.0.0-20230330175244-2d37b4ad1276 h1:5hyvHqzSM7NH7TPLU+i5G8Pm+BETlnJgDfpoCRm3ic8=
-github.com/azyablov/srljrpc/datastores v0.0.0-20230330175244-2d37b4ad1276/go.mod h1:K6/iC5t3JmStWDJ4ZXvwfOYI8REFeEIs5EZS3KNmiRQ=
-github.com/azyablov/srljrpc/formats v0.0.0-20230330175244-2d37b4ad1276 h1:JK7JIYkYac7wIC+zNHYsXWgNp+oFtiBgoB5YI3m+JSg=
-github.com/azyablov/srljrpc/formats v0.0.0-20230330175244-2d37b4ad1276/go.mod h1:Jx0i6PR8RqpM6E+F3faf0NucU89t4z8WiqcvMWkWfog=
-github.com/azyablov/srljrpc/methods v0.0.0-20230330175244-2d37b4ad1276 h1:UFkSeWqZajvAVs3pXN8dY6P2IW98jfWA6vT4HubSIDs=
-github.com/azyablov/srljrpc/methods v0.0.0-20230330175244-2d37b4ad1276/go.mod h1:dsjVArs/QjxjO7htWLC/YC4cLLdXZL78dzhmk294UCc=
