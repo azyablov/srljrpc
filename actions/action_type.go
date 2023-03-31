@@ -63,7 +63,7 @@ func (a *Action) SetAction(ra EnumActions) error {
 	case UPDATE:
 		a.Action = "update"
 	case NONE:
-		a.Action = "NONE"
+		a.Action = "none"
 	default:
 		return fmt.Errorf("action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET")
 	}

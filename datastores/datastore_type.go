@@ -47,6 +47,8 @@ func (d *Datastore) GetDatastore() (EnumDatastores, error) {
 		rd = STATE
 	case "tools":
 		rd = TOOLS
+	case "":
+		rd = CANDIDATE
 	default:
 		return rd, fmt.Errorf("datastore isn't set properly, while should be CANDIDATE / RUNNING / STATE / TOOLS")
 	}
