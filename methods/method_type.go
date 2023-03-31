@@ -25,6 +25,11 @@ const (
 	VALIDATE                   // note "Used to verify that the system accepts a configuration transaction before applying it to the system."
 )
 
+const (
+	GetErrMsg = "method isn't set properly, while should be GET / SET / CLI / VALIDATE"
+	SetErrMsg = "method provided isn't correct, while should be GET / SET / CLI / VALIDATE"
+)
+
 // note for method "Mandatory. Supported options are get, set, and validate. "
 //
 //	class method {
@@ -49,7 +54,7 @@ func (m *Method) GetMethod() (EnumMethods, error) {
 	case "validate":
 		rm = VALIDATE
 	default:
-		return rm, fmt.Errorf("method isn't set properly, while should be GET / SET / CLI / VALIDATE")
+		return rm, fmt.Errorf(GetErrMsg)
 	}
 	return rm, nil
 }
@@ -65,7 +70,7 @@ func (m *Method) SetMethod(rm EnumMethods) error {
 	case VALIDATE:
 		m.Method = "validate"
 	default:
-		return fmt.Errorf("method provided isn't correct, while should be GET / SET / CLI / VALIDATE")
+		return fmt.Errorf(SetErrMsg)
 	}
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/azyablov/srljrpc/datastores"
 )
 
-func Test_Datastore(t *testing.T) {
+func TestDatastores(t *testing.T) {
 	// Verify default datastore is CANDIDATE
 	d := datastores.Datastore{}
 	rd, err := d.GetDatastore()
@@ -27,7 +27,7 @@ func Test_Datastore(t *testing.T) {
 		{testName: "Setting datastore to RUNNING", datastore: datastores.RUNNING, expErrSet: nil, expErrGet: nil, errMsg: "datastore RUNNING isn't set properly: "},
 		{testName: "Setting datastore to STATE", datastore: datastores.STATE, expErrSet: nil, expErrGet: nil, errMsg: "datastore STATE isn't set properly: "},
 		{testName: "Setting datastore to TOOLS", datastore: datastores.TOOLS, expErrSet: nil, expErrGet: nil, errMsg: "datastore TOOLS isn't set properly: "},
-		{testName: "Setting datastore to non existent datastore 100", datastore: datastores.EnumDatastores(100), expErrSet: fmt.Errorf("datastore provided isn't correct, while should be CANDIDATE / RUNNING / STATE / TOOLS"),
+		{testName: "Setting datastore to non existent datastore 100", datastore: datastores.EnumDatastores(100), expErrSet: fmt.Errorf(datastores.SetErrMsg),
 			expErrGet: nil, errMsg: "fake datastore 100 was handled incorrectly: "},
 	}
 
@@ -49,14 +49,14 @@ func Test_Datastore(t *testing.T) {
 				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
 			}
 
-			rd, err = d.GetDatastore()
+			rd, err := d.GetDatastore()
 			switch {
 			case err == nil && td.expErrGet == nil:
-				// while set action must failing, get action must not get the same result
+				// while SetDatastore must failing, GetDatastore must not get the same result
 				if rd == td.datastore && td.expErrSet != nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", rd, td.datastore)
 				}
-				// if set is ok, then get must return the same result
+				// if SetDatastore is ok, then GetDatastore must return the same result
 				if rd != td.datastore && td.expErrSet == nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", rd, td.datastore)
 				}

@@ -7,7 +7,7 @@ import (
 	"github.com/azyablov/srljrpc/actions"
 )
 
-func Test_Action(t *testing.T) {
+func TestActions(t *testing.T) {
 
 	// Verify default action is INVALID_ACTION
 	a := actions.Action{}
@@ -24,14 +24,12 @@ func Test_Action(t *testing.T) {
 		expErrGet error
 		errMsg    string
 	}{
-		{testName: "Setting action REPLACE", action: actions.REPLACE, expErrSet: nil, expErrGet: nil, errMsg: "action REPLACE isn't set properly: "},
-		{testName: "Setting action UPDATE", action: actions.UPDATE, expErrSet: nil, expErrGet: nil, errMsg: "action UPDATE isn't set properly: "},
-		{testName: "Setting action DELETE", action: actions.DELETE, expErrSet: nil, expErrGet: nil, errMsg: "action DELETE isn't set properly: "},
-		{testName: "Setting action NONE", action: actions.NONE, expErrSet: nil, expErrGet: nil, errMsg: "action NONE isn't set properly: "},
-		{testName: "Setting action INVALID_ACTION", action: actions.INVALID_ACTION, expErrSet: fmt.Errorf("action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET"),
-			expErrGet: fmt.Errorf("action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET"), errMsg: "action INVALID_ACTION was handled incorrectly:"},
-		{testName: "Setting action non existent action 100", action: actions.EnumActions(100), expErrSet: fmt.Errorf("action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET"),
-			expErrGet: fmt.Errorf("action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET"), errMsg: "fake action 100 was handled incorrectly: "},
+		{testName: "Setting action to REPLACE", action: actions.REPLACE, expErrSet: nil, expErrGet: nil, errMsg: "action REPLACE isn't set properly: "},
+		{testName: "Setting action to UPDATE", action: actions.UPDATE, expErrSet: nil, expErrGet: nil, errMsg: "action UPDATE isn't set properly: "},
+		{testName: "Setting action toDELETE", action: actions.DELETE, expErrSet: nil, expErrGet: nil, errMsg: "action DELETE isn't set properly: "},
+		{testName: "Setting action to NONE", action: actions.NONE, expErrSet: nil, expErrGet: nil, errMsg: "action NONE isn't set properly: "},
+		{testName: "Setting action to INVALID_ACTION", action: actions.INVALID_ACTION, expErrSet: fmt.Errorf(actions.SetErrMsg), expErrGet: fmt.Errorf(actions.GetErrMsg), errMsg: "action INVALID_ACTION was handled incorrectly: "},
+		{testName: "Setting action to non existent action 100", action: actions.EnumActions(100), expErrSet: fmt.Errorf(actions.SetErrMsg), expErrGet: fmt.Errorf(actions.GetErrMsg), errMsg: "fake action 100 was handled incorrectly: "},
 	}
 	for _, td := range testData {
 		t.Run(td.testName, func(t *testing.T) {
@@ -51,14 +49,14 @@ func Test_Action(t *testing.T) {
 				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
 			}
 
-			ra, err = a.GetAction()
+			ra, err := a.GetAction()
 			switch {
 			case err == nil && td.expErrGet == nil:
-				// while set action must failing, get action must not get the same result
+				// while SetAction must failing, GetAction must not get the same result
 				if ra == td.action && td.expErrSet != nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", ra, td.action)
 				}
-				// if set is ok, then get must return the same result
+				// if SetAction is ok, then GetAction must return the same result
 				if ra != td.action && td.expErrSet == nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", ra, td.action)
 				}
@@ -79,5 +77,4 @@ func Test_Action(t *testing.T) {
 			}
 		})
 	}
-
 }

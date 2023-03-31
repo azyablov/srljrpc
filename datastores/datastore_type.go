@@ -24,6 +24,11 @@ const (
 	TOOLS
 )
 
+const (
+	GetErrMsg = "datastore isn't set properly, while should be CANDIDATE / RUNNING / STATE / TOOLS"
+	SetErrMsg = "datastore provided isn't correct, while should be CANDIDATE / RUNNING / STATE / TOOLS"
+)
+
 // note for datastore "Optional; selects the datastore to perform the method against. CANDIDATE datastore is used if the datastore parameter is not provided."
 //
 //	class Datastore {
@@ -50,7 +55,7 @@ func (d *Datastore) GetDatastore() (EnumDatastores, error) {
 	case "":
 		rd = CANDIDATE
 	default:
-		return rd, fmt.Errorf("datastore isn't set properly, while should be CANDIDATE / RUNNING / STATE / TOOLS")
+		return rd, fmt.Errorf(GetErrMsg)
 	}
 	return rd, nil
 }
@@ -66,7 +71,7 @@ func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 	case TOOLS:
 		d.Datastore = "tools"
 	default:
-		return fmt.Errorf("datastore provided isn't correct, while should be CANDIDATE / RUNNING / STATE / TOOLS")
+		return fmt.Errorf(SetErrMsg)
 	}
 	return nil
 }

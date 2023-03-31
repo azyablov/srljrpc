@@ -18,6 +18,11 @@ const (
 	TABLE
 )
 
+const (
+	GetErrMsg = "output format isn't set properly, while should be JSON / XML / TABLE"
+	SetErrMsg = "output format provided isn't correct, while should be JSON / XML / TABLE"
+)
+
 // note for outputFormat "Optional. Defines the output format. Output defaults to JSON if not specified."
 //
 //	class OutputFormat {
@@ -42,7 +47,7 @@ func (of *OutputFormat) GetFormat() (EnumOutputFormats, error) {
 	case "":
 		rf = JSON
 	default:
-		return rf, fmt.Errorf("output format isn't set properly, while should be JSON / XML / TABLE")
+		return rf, fmt.Errorf(GetErrMsg)
 	}
 	return rf, nil
 }
@@ -56,7 +61,7 @@ func (of *OutputFormat) SetFormat(ofs EnumOutputFormats) error {
 	case TABLE:
 		of.OutputFormat = "table"
 	default:
-		return fmt.Errorf("output format provided isn't correct, while should be JSON / XML / TABLE")
+		return fmt.Errorf(SetErrMsg)
 	}
 	return nil
 }
