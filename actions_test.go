@@ -54,9 +54,11 @@ func Test_Action(t *testing.T) {
 			ra, err = a.GetAction()
 			switch {
 			case err == nil && td.expErrGet == nil:
+				// while set action must failing, get action must not get the same result
 				if ra == td.action && td.expErrSet != nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", ra, td.action)
 				}
+				// if set is ok, then get must return the same result
 				if ra != td.action && td.expErrSet == nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", ra, td.action)
 				}

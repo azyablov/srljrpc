@@ -52,9 +52,11 @@ func Test_Datastore(t *testing.T) {
 			rd, err = d.GetDatastore()
 			switch {
 			case err == nil && td.expErrGet == nil:
+				// while set action must failing, get action must not get the same result
 				if rd == td.datastore && td.expErrSet != nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", rd, td.datastore)
 				}
+				// if set is ok, then get must return the same result
 				if rd != td.datastore && td.expErrSet == nil {
 					t.Errorf(td.errMsg+"got %v, while should be %v", rd, td.datastore)
 				}
