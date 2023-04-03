@@ -10,9 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-type actPathVal struct {
-}
-
 func TestNewCommand(t *testing.T) {
 	// checking for the system version and hostname
 	strOpts := []string{"", "WithoutRecursion", "WithDefaults", "WithAddPathKeywords", "WithDatastore"}
