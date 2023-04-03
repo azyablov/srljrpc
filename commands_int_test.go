@@ -75,9 +75,8 @@ T:}`)
 	}
 
 	err = mockGetCmd.SetAction(actions.NONE)
-	t.Logf("expected error: %s", err)
-	if err == nil {
-		t.Fatalf("expected error '%s', got nil", actions.NoneErrMsg)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	err = mockGetCmd.withPathKeywords([]byte(`{"name": "mgmt0"}`))
@@ -95,7 +94,7 @@ T:}`)
 	}
 }
 
-func Test_withPathKeyword(t *testing.T) {
+func Test_withPathKeywords(t *testing.T) {
 	var mockGetCmd = &Command{
 		Path:      "/interface[name={name}]/description",
 		Datastore: &datastores.Datastore{},

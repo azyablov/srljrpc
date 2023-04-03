@@ -142,7 +142,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 // Get method of JSONRPCClient. Executes a GET request against running datastore.
 func (c *JSONRPCClient) Get(path string) (*Response, error) {
 	opts := []CommandOptions{WithDatastore(datastores.RUNNING)}
-	cmd, err := NewCommand(actions.NONE, path, CommandValue{}, opts...)
+	cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
 
 	if err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func (c *JSONRPCClient) SetReplace(path string, value CommandValue) (*Response, 
 // SetDelete method of JSONRPCClient. Executes a SET DELETE action request against running datastore.
 func (c *JSONRPCClient) SetDelete(path string) (*Response, error) {
 	opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(actions.DELETE, path, CommandValue{}, opts...)
+	cmd, err := NewCommand(actions.DELETE, path, CommandValue(""), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -242,11 +242,11 @@ func (c *JSONRPCClient) populateDefaults() error {
 func (c *JSONRPCClient) targetVerification() error {
 
 	// checking for the system version and hostname
-	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue{}, nil)
+	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue(""), nil)
 	if err != nil {
 		return err
 	}
-	sysVerCmd, err := NewCommand(actions.NONE, "/system/version", CommandValue{}, nil)
+	sysVerCmd, err := NewCommand(actions.NONE, "/system/version", CommandValue(""), nil)
 	if err != nil {
 		return err
 	}

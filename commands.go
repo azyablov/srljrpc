@@ -14,7 +14,7 @@ func NewCommand(action actions.EnumActions, path string, value CommandValue, opt
 	c := &Command{
 		Path:      path,
 		Recursive: true,
-		Value:     value.string,
+		Value:     string(value),
 	}
 
 	if action != actions.NONE {
@@ -26,7 +26,11 @@ func NewCommand(action actions.EnumActions, path string, value CommandValue, opt
 	}
 
 	for _, opt := range opts {
-		opt(c)
+		if opt != nil {
+			if err := opt(c); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return c, nil
 }
@@ -127,9 +131,7 @@ type CommandOptions func(*Command) error
 //		<<element>>
 //		string
 //	}
-type CommandValue struct {
-	string
-}
+type CommandValue string
 
 // note for params "MAY be omitted. Defines a container for any parameters related to the request. The type of parameter is dependent on the method used."
 //

@@ -1,0 +1,17 @@
+{
+    "jsonrpc": "2.0",
+    "id": 0,
+    "method": "get",
+    "params": {
+        "commands": [
+            {
+                "path": "/system/name/host-name",
+                "datastore": "state"
+            },
+            {
+                "path": "/system/information/version",
+                "datastore": "state"
+            }
+        ]
+    }
+}

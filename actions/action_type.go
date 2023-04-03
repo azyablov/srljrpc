@@ -26,9 +26,8 @@ const (
 )
 
 const (
-	GetErrMsg  = "action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
-	SetErrMsg  = "action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
-	NoneErrMsg = "action set to none, while should not exists, use NewCommand() to setup a command and GetAction/SetAction() methods to manipulate it"
+	GetErrMsg = "action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
+	SetErrMsg = "action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
 )
 
 // note for action "Conditional mandatory; used with the set and validate methods."
@@ -40,7 +39,7 @@ const (
 //		+string Action
 //	}
 type Action struct {
-	Action string `json:"action"`
+	Action string `json:"action,omitempty"`
 }
 
 func (a *Action) GetAction() (EnumActions, error) {
@@ -52,8 +51,8 @@ func (a *Action) GetAction() (EnumActions, error) {
 		ra = UPDATE
 	case "delete":
 		ra = DELETE
-	case "none":
-		return ra, fmt.Errorf(NoneErrMsg)
+	case "":
+		ra = NONE
 	default:
 		return ra, fmt.Errorf(GetErrMsg)
 	}
@@ -69,7 +68,7 @@ func (a *Action) SetAction(ra EnumActions) error {
 	case UPDATE:
 		a.Action = "update"
 	case NONE:
-		return fmt.Errorf(NoneErrMsg)
+		a.Action = ""
 	default:
 		return fmt.Errorf(SetErrMsg)
 	}
