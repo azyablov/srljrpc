@@ -26,8 +26,8 @@ func TestActions(t *testing.T) {
 	}{
 		{testName: "Setting action to REPLACE", action: actions.REPLACE, expErrSet: nil, expErrGet: nil, errMsg: "action REPLACE isn't set properly: "},
 		{testName: "Setting action to UPDATE", action: actions.UPDATE, expErrSet: nil, expErrGet: nil, errMsg: "action UPDATE isn't set properly: "},
-		{testName: "Setting action toDELETE", action: actions.DELETE, expErrSet: nil, expErrGet: nil, errMsg: "action DELETE isn't set properly: "},
-		{testName: "Setting action to NONE", action: actions.NONE, expErrSet: nil, expErrGet: nil, errMsg: "action NONE isn't set properly: "},
+		{testName: "Setting action to DELETE", action: actions.DELETE, expErrSet: nil, expErrGet: nil, errMsg: "action DELETE isn't set properly: "},
+		{testName: "Setting action to NONE", action: actions.NONE, expErrSet: fmt.Errorf(actions.NoneErrMsg), expErrGet: fmt.Errorf(actions.GetErrMsg), errMsg: "action NONE isn't set properly: "},
 		{testName: "Setting action to INVALID_ACTION", action: actions.INVALID_ACTION, expErrSet: fmt.Errorf(actions.SetErrMsg), expErrGet: fmt.Errorf(actions.GetErrMsg), errMsg: "action INVALID_ACTION was handled incorrectly: "},
 		{testName: "Setting action to non existent action 100", action: actions.EnumActions(100), expErrSet: fmt.Errorf(actions.SetErrMsg), expErrGet: fmt.Errorf(actions.GetErrMsg), errMsg: "fake action 100 was handled incorrectly: "},
 	}

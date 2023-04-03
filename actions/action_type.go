@@ -26,8 +26,9 @@ const (
 )
 
 const (
-	GetErrMsg = "action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
-	SetErrMsg = "action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
+	GetErrMsg  = "action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
+	SetErrMsg  = "action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
+	NoneErrMsg = "action set to none, while should not exists, use NewCommand() to setup a command and GetAction/SetAction() methods to manipulate it"
 )
 
 // note for action "Conditional mandatory; used with the set and validate methods."
@@ -52,7 +53,7 @@ func (a *Action) GetAction() (EnumActions, error) {
 	case "delete":
 		ra = DELETE
 	case "none":
-		ra = NONE
+		return ra, fmt.Errorf(NoneErrMsg)
 	default:
 		return ra, fmt.Errorf(GetErrMsg)
 	}
@@ -68,7 +69,7 @@ func (a *Action) SetAction(ra EnumActions) error {
 	case UPDATE:
 		a.Action = "update"
 	case NONE:
-		a.Action = "none"
+		return fmt.Errorf(NoneErrMsg)
 	default:
 		return fmt.Errorf(SetErrMsg)
 	}

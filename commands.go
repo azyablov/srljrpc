@@ -16,10 +16,15 @@ func NewCommand(action actions.EnumActions, path string, value CommandValue, opt
 		Recursive: true,
 		Value:     value.string,
 	}
-	err := c.Action.SetAction(action)
-	if err != nil {
-		return nil, err
+
+	if action != actions.NONE {
+		c.Action = &actions.Action{}
+		err := c.Action.SetAction(action)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	for _, opt := range opts {
 		opt(c)
 	}
@@ -108,6 +113,7 @@ func (c *Command) withPathKeywords(jrm json.RawMessage) error {
 }
 
 func (c *Command) withDatastore(ds datastores.EnumDatastores) error {
+	c.Datastore = &datastores.Datastore{}
 	return c.Datastore.SetDatastore(ds)
 }
 

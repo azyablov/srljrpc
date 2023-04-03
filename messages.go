@@ -126,6 +126,7 @@ func apply_cmds(r *Request, cmds []*Command) error {
 	if err != nil {
 		return err
 	}
+	// TODO: When the action command is used with the tools datastore, update is the only supported option.!!!
 	switch m {
 	case methods.GET:
 		for _, c := range cmds {
