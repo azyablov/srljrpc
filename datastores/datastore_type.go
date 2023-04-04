@@ -78,7 +78,7 @@ func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 
 func (m *Datastore) DatastoreName() string {
 	if m.Datastore == "" {
-		return "CANDIDATE"
+		return "candidate"
 	}
 	return m.Datastore
 }

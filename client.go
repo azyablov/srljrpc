@@ -98,7 +98,6 @@ func NewJSONRPCClient(host *string, opts []ClientOption) (*JSONRPCClient, error)
 	return c, nil
 }
 
-// Call method of JSONRPCClient
 // Calls the JSON RPC server and returns the response.
 func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	body, err := r.Marshal()

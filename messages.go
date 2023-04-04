@@ -31,7 +31,6 @@ type Request struct {
 	ID             int    `json:"id"`
 	*methods.Method
 	*Params
-	//TODO: extend struct for options!!!
 }
 
 func (r *Request) Marshal() ([]byte, error) {
@@ -90,6 +89,7 @@ func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (
 	r.JSONRpcVersion = "2.0"
 
 	// set method
+	r.Method = &methods.Method{}
 	err := r.Method.SetMethod(m)
 	if err != nil {
 		return nil, err
@@ -99,6 +99,10 @@ func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (
 	rand.Seed(time.Now().UnixNano())
 	id := rand.Int()
 	r.setID(id)
+
+	// set params and output format
+	r.Params = &Params{}
+	r.Params.OutputFormat = &formats.OutputFormat{}
 
 	// set commands
 	err = apply_cmds(r, cmds)
@@ -126,7 +130,6 @@ func apply_cmds(r *Request, cmds []*Command) error {
 	if err != nil {
 		return err
 	}
-	// TODO: When the action command is used with the tools datastore, update is the only supported option.!!!
 	switch m {
 	case methods.GET:
 		for _, c := range cmds {

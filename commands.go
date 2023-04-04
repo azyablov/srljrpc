@@ -15,6 +15,7 @@ func NewCommand(action actions.EnumActions, path string, value CommandValue, opt
 		Path:      path,
 		Recursive: true,
 		Value:     string(value),
+		Datastore: &datastores.Datastore{},
 	}
 
 	if action != actions.NONE {

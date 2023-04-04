@@ -37,9 +37,9 @@ func TestNewCommand(t *testing.T) {
 			{"REPLACE" + o, actions.REPLACE, srljrpc.CommandValue("test replace"), cOpts[:i], nil, expectedJSON[i-1][3]},
 		}
 
-		for _, tt := range testData {
-			t.Run(tt.testName, func(t *testing.T) {
-				cmd, err := srljrpc.NewCommand(tt.action, "/system/name/host-name", tt.value, tt.opts...)
+		for _, td := range testData {
+			t.Run(td.testName, func(t *testing.T) {
+				cmd, err := srljrpc.NewCommand(td.action, "/system/name/host-name", td.value, td.opts...)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -48,12 +48,13 @@ func TestNewCommand(t *testing.T) {
 					t.Fatal(err)
 				}
 				t.Log(string(b))
-				cmp.Diff(string(b), tt.expJSON)
-				if out := cmp.Diff(string(b), tt.expJSON); out != "" {
-					t.Fatalf("\nexpected: %s, \ngot: %s", string(tt.expJSON), string(b))
+				cmp.Diff(string(b), td.expJSON)
+				if out := cmp.Diff(string(b), td.expJSON); out != "" {
+					t.Fatalf("\nexpected: %s, \ngot: %s", string(td.expJSON), string(b))
 				}
 			})
 		}
+		o = o + " " + strOpts[i]
 	}
 
 }
