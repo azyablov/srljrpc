@@ -227,7 +227,7 @@ func TestNewRequest_Validate(t *testing.T) {
 	cmdResults := []*srljrpc.Command{}
 
 	for _, ca := range cmdArgs {
-		t.Run("NewSETCommand", func(t *testing.T) {
+		t.Run("NewVALIDATECommand", func(t *testing.T) {
 			cmd, err := srljrpc.NewCommand(ca.action, ca.path, ca.value, ca.opts...)
 			if err != nil {
 				t.Fatal(err)
