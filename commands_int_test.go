@@ -22,6 +22,7 @@ T:  "value": "This is a test.",
 T:  "path-keywords": {
 T:    "name": "mgmt0"
 T:  },
+T:  "recursive": false,
 T:  "include-field-defaults": true,
 T:  "action": "update",
 T:  "datastore": "candidate"
@@ -49,7 +50,8 @@ T:}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	// uncomment for debug
+	// t.Log(string(b))
 	if out := cmp.Diff(string(b), string(expected)); out != "" {
 		t.Log(out)
 		t.Fatalf("expected: %s, got: %s", string(expected), string(b))
@@ -59,6 +61,7 @@ T:}`)
 func Test_rawGetCommand(t *testing.T) {
 	var mockGetCmd = &Command{
 		Path:      "/interface[name={name}]/description",
+		Action:    &actions.Action{},
 		Datastore: &datastores.Datastore{},
 	}
 	var expected = []byte(`{
@@ -90,6 +93,7 @@ T:}`)
 	}
 
 	if out := cmp.Diff(string(b), string(expected)); out != "" {
+		t.Log(out)
 		t.Fatalf("\nexpected: %s, \ngot: %s", string(expected), string(b))
 	}
 }
@@ -104,5 +108,10 @@ func Test_withPathKeywords(t *testing.T) {
 	t.Logf("expected error: %s", err)
 	if err == nil {
 		t.Fatalf("expected error 'failed to unmarshal path-keywords', got nil")
+	}
+
+	err = mockGetCmd.withPathKeywords([]byte(`{"name": "mgmt0", "name1": "mgmt1", "name2": "mgmt2"}`))
+	if err != nil {
+		t.Fatalf("expected nil, got %s", err)
 	}
 }

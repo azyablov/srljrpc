@@ -14,7 +14,7 @@ type EnumOutputFormats int
 
 const (
 	JSON EnumOutputFormats = iota
-	XML
+	TEXT
 	TABLE
 )
 
@@ -40,8 +40,8 @@ func (of *OutputFormat) GetFormat() (EnumOutputFormats, error) {
 	switch of.OutputFormat {
 	case "json":
 		rf = JSON
-	case "xml":
-		rf = XML
+	case "text":
+		rf = TEXT
 	case "table":
 		rf = TABLE
 	case "":
@@ -56,8 +56,8 @@ func (of *OutputFormat) SetFormat(ofs EnumOutputFormats) error {
 	switch ofs {
 	case JSON:
 		of.OutputFormat = "json"
-	case XML:
-		of.OutputFormat = "xml"
+	case TEXT:
+		of.OutputFormat = "text"
 	case TABLE:
 		of.OutputFormat = "table"
 	default:

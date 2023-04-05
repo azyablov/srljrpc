@@ -30,7 +30,7 @@ type Request struct {
 	JSONRpcVersion string `json:"jsonrpc"`
 	ID             int    `json:"id"`
 	*methods.Method
-	*Params
+	Params *Params `json:"params"`
 }
 
 func (r *Request) Marshal() ([]byte, error) {
@@ -124,7 +124,12 @@ func apply_cmds(r *Request, cmds []*Command) error {
 	if len(cmds) == 0 {
 		return fmt.Errorf("no commands given")
 	}
-
+	// check if commands aren't empty
+	for _, c := range cmds {
+		if c == nil {
+			return fmt.Errorf("nil commands aren't allowed")
+		}
+	}
 	// check if commands are valid for the selected method
 	m, err := r.Method.GetMethod()
 	if err != nil {
@@ -170,8 +175,17 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			if c.Action == nil {
 				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
 			}
-			if c.Value == "" && !strings.Contains(c.Action.Action, ":") {
+			if c.Value == "" && !strings.Contains(c.Path, ":") {
 				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
+			}
+			if strings.Contains(c.Path, ":") {
+				sl := strings.Split(c.Path, ":")
+				if len(sl) != 2 {
+					return fmt.Errorf("invalid k:v path specification for method %s", r.Method.MethodName())
+				}
+				if c.Value != "" {
+					return fmt.Errorf("value specified in the path and as a separate value for method %s", r.Method.MethodName())
+				}
 			}
 		}
 	case methods.VALIDATE:
@@ -191,8 +205,17 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			if c.Action == nil {
 				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
 			}
-			if c.Value == "" && !strings.Contains(c.Action.Action, ":") {
+			if c.Value == "" && !strings.Contains(c.Path, ":") {
 				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
+			}
+			if strings.Contains(c.Path, ":") {
+				sl := strings.Split(c.Path, ":")
+				if len(sl) != 2 {
+					return fmt.Errorf("invalid k:v path specification for method %s", r.Method.MethodName())
+				}
+				if c.Value != "" {
+					return fmt.Errorf("value specified in the path and as a separate value for method %s", r.Method.MethodName())
+				}
 			}
 		}
 	case methods.CLI:
@@ -201,15 +224,21 @@ func apply_cmds(r *Request, cmds []*Command) error {
 		return fmt.Errorf("method %s not supported by Request", r.Method.MethodName())
 	}
 	// checks passed, append commands to request
-	r.appendCommands(cmds)
+	err = r.Params.appendCommands(cmds)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // function applies options to the request
 func apply_opts(r *Request, opts []RequestOption) error {
 	for _, o := range opts {
-		if err := o(r); err != nil {
-			return nil
+		if o != nil { // check that's not nil
+			if err := o(r); err != nil {
+				return nil
+			}
 		}
 	}
 	return nil
@@ -234,7 +263,7 @@ type CLIRequest struct {
 	JSONRpcVersion string `json:"jsonrpc"`
 	ID             int    `json:"id"`
 	*methods.Method
-	*CLIParams
+	Params *CLIParams `json:"params"`
 }
 
 func (r *CLIRequest) Marshal() ([]byte, error) {
@@ -254,7 +283,7 @@ func (r *CLIRequest) setID(id int) {
 }
 
 func (r *CLIRequest) SetOutputFormat(of formats.EnumOutputFormats) error {
-	return r.CLIParams.OutputFormat.SetFormat(of)
+	return r.Params.OutputFormat.SetFormat(of)
 }
 
 // +NewCLIRequest(List~string~ cmds, List~RequestOption~ opts) CLIRequest
@@ -264,6 +293,7 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 	r.JSONRpcVersion = "2.0"
 
 	// set method
+	r.Method = &methods.Method{}
 	err := r.Method.SetMethod(methods.CLI)
 	if err != nil {
 		return nil, err
@@ -273,9 +303,15 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 	rand.Seed(time.Now().UnixNano())
 	id := rand.Int()
 	r.setID(id)
+	// set params
+	r.Params = &CLIParams{}
+	r.Params.OutputFormat = &formats.OutputFormat{}
 
 	// set commands
-	r.appendCommands(cmds)
+	err = r.Params.appendCommands(cmds)
+	if err != nil {
+		return nil, err
+	}
 
 	// apply options to request
 	err = r.SetOutputFormat(of)

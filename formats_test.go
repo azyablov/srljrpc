@@ -24,7 +24,7 @@ func TestFormats(t *testing.T) {
 		errMsg    string
 	}{
 		{testName: "Setting format to JSON", format: formats.JSON, expErrSet: nil, expErrGet: nil, errMsg: "format JSON isn't set properly: "},
-		{testName: "Setting format to XML", format: formats.XML, expErrSet: nil, expErrGet: nil, errMsg: "format XML isn't set properly: "},
+		{testName: "Setting format to TEXT", format: formats.TEXT, expErrSet: nil, expErrGet: nil, errMsg: "format TEXT isn't set properly: "},
 		{testName: "Setting format to TABLE", format: formats.TABLE, expErrSet: nil, expErrGet: nil, errMsg: "format TABLE isn't set properly: "},
 		{testName: "Setting format to non existent format 100", format: formats.EnumOutputFormats(100), expErrSet: fmt.Errorf(formats.SetErrMsg),
 			expErrGet: nil, errMsg: "fake format 100 was handled incorrectly: "},

@@ -15,10 +15,21 @@ func TestNewCommand(t *testing.T) {
 	strOpts := []string{"", "WithoutRecursion", "WithDefaults", "WithAddPathKeywords", "WithDatastore"}
 	cOpts := []srljrpc.CommandOptions{nil, srljrpc.WithoutRecursion(), srljrpc.WithDefaults(), srljrpc.WithAddPathKeywords(json.RawMessage(`{"name": "mgmt0"}`)), srljrpc.WithDatastore(datastores.CANDIDATE)}
 	expectedJSON := [][]string{
-		{`{"path":"/system/name/host-name","recursive":true}`, `{"path":"/system/name/host-name","value":"test delete","recursive":true,"action":"delete"}`, `{"path":"/system/name/host-name","value":"test update","recursive":true,"action":"update"}`, `{"path":"/system/name/host-name","value":"test replace","recursive":true,"action":"replace"}`},
-		{`{"path":"/system/name/host-name"}`, `{"path":"/system/name/host-name","value":"test delete","action":"delete"}`, `{"path":"/system/name/host-name","value":"test update","action":"update"}`, `{"path":"/system/name/host-name","value":"test replace","action":"replace"}`},
-		{`{"path":"/system/name/host-name","include-field-defaults":true}`, `{"path":"/system/name/host-name","value":"test delete","include-field-defaults":true,"action":"delete"}`, `{"path":"/system/name/host-name","value":"test update","include-field-defaults":true,"action":"update"}`, `{"path":"/system/name/host-name","value":"test replace","include-field-defaults":true,"action":"replace"}`},
-		{`{"path":"/system/name/host-name","path-keywords":{"name":"mgmt0"},"include-field-defaults":true}`, `{"path":"/system/name/host-name","value":"test delete","path-keywords":{"name":"mgmt0"},"include-field-defaults":true,"action":"delete"}`, `{"path":"/system/name/host-name","value":"test update","path-keywords":{"name":"mgmt0"},"include-field-defaults":true,"action":"update"}`, `{"path":"/system/name/host-name","value":"test replace","path-keywords":{"name":"mgmt0"},"include-field-defaults":true,"action":"replace"}`},
+		{`{"path":"/system/name/host-name"}`, `{"path":"/system/name/host-name","value":"test delete","action":"delete"}`,
+			`{"path":"/system/name/host-name","value":"test update","action":"update"}`,
+			`{"path":"/system/name/host-name","value":"test replace","action":"replace"}`},
+		{`{"path":"/system/name/host-name","recursive":false}`,
+			`{"path":"/system/name/host-name","value":"test delete","recursive":false,"action":"delete"}`,
+			`{"path":"/system/name/host-name","value":"test update","recursive":false,"action":"update"}`,
+			`{"path":"/system/name/host-name","value":"test replace","recursive":false,"action":"replace"}`},
+		{`{"path":"/system/name/host-name","recursive":false,"include-field-defaults":true}`,
+			`{"path":"/system/name/host-name","value":"test delete","recursive":false,"include-field-defaults":true,"action":"delete"}`,
+			`{"path":"/system/name/host-name","value":"test update","recursive":false,"include-field-defaults":true,"action":"update"}`,
+			`{"path":"/system/name/host-name","value":"test replace","recursive":false,"include-field-defaults":true,"action":"replace"}`},
+		{`{"path":"/system/name/host-name","path-keywords":{"name":"mgmt0"},"recursive":false,"include-field-defaults":true}`,
+			`{"path":"/system/name/host-name","value":"test delete","path-keywords":{"name":"mgmt0"},"recursive":false,"include-field-defaults":true,"action":"delete"}`,
+			`{"path":"/system/name/host-name","value":"test update","path-keywords":{"name":"mgmt0"},"recursive":false,"include-field-defaults":true,"action":"update"}`,
+			`{"path":"/system/name/host-name","value":"test replace","path-keywords":{"name":"mgmt0"},"recursive":false,"include-field-defaults":true,"action":"replace"}`},
 	}
 	o := strOpts[0]
 	for i := 1; i < len(cOpts); i++ {

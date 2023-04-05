@@ -12,10 +12,11 @@ import (
 // +NewCommand(EnumActions action, string path, string value, List~CommandOptions~ opts) sCommand
 func NewCommand(action actions.EnumActions, path string, value CommandValue, opts ...CommandOptions) (*Command, error) {
 	c := &Command{
-		Path:      path,
-		Recursive: true,
-		Value:     string(value),
-		Datastore: &datastores.Datastore{},
+		Path:                 path,
+		Value:                string(value),
+		Recursive:            nil,
+		IncludeFieldDefaults: nil,
+		Datastore:            &datastores.Datastore{},
 	}
 
 	if action != actions.NONE {
@@ -27,7 +28,7 @@ func NewCommand(action actions.EnumActions, path string, value CommandValue, opt
 	}
 
 	for _, opt := range opts {
-		if opt != nil {
+		if opt != nil { // check that's not nil
 			if err := opt(c); err != nil {
 				return nil, err
 			}
@@ -93,18 +94,20 @@ type Command struct {
 	Path                 string          `json:"path"`
 	Value                string          `json:"value,omitempty"`
 	PathKeywords         json.RawMessage `json:"path-keywords,omitempty"`
-	Recursive            bool            `json:"recursive,omitempty"`
-	IncludeFieldDefaults bool            `json:"include-field-defaults,omitempty"`
+	Recursive            *bool           `json:"recursive,omitempty"`
+	IncludeFieldDefaults *bool           `json:"include-field-defaults,omitempty"`
 	*actions.Action
 	*datastores.Datastore
 }
 
 func (c *Command) withoutRecursion() {
-	c.Recursive = false
+	v := false
+	c.Recursive = &v
 }
 
 func (c *Command) withDefaults() {
-	c.IncludeFieldDefaults = true
+	v := true
+	c.IncludeFieldDefaults = &v
 }
 
 func (c *Command) withPathKeywords(jrm json.RawMessage) error {
@@ -148,10 +151,14 @@ type Params struct {
 	*formats.OutputFormat
 }
 
-func (p *Params) appendCommands(commands []*Command) {
+func (p *Params) appendCommands(commands []*Command) error {
 	for _, c := range commands {
+		if c == nil {
+			return fmt.Errorf("nil commands are not allowed")
+		}
 		p.Commands = append(p.Commands, *c)
 	}
+	return nil
 }
 
 func (p *Params) getCmds() *[]Command {
@@ -170,8 +177,14 @@ type CLIParams struct {
 	*formats.OutputFormat
 }
 
-func (p *CLIParams) appendCommands(commands []string) {
+func (p *CLIParams) appendCommands(commands []string) error {
+	for _, c := range commands {
+		if c == "" {
+			return fmt.Errorf("empty commands are not allowed")
+		}
+	}
 	p.Commands = append(p.Commands, commands...)
+	return nil
 }
 
 func (p *CLIParams) getCmds() *[]string {
