@@ -184,11 +184,6 @@ func (c *JSONRPCClient) Update(path string, value CommandValue) (*Response, erro
 	if err != nil {
 		return nil, err
 	}
-	// b, err := r.Marshal()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// fmt.Printf("Request: %s", string(b))
 	return c.Do(r)
 }
 

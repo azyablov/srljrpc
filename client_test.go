@@ -10,6 +10,7 @@ import (
 
 	"github.com/azyablov/srljrpc"
 	"github.com/azyablov/srljrpc/actions"
+	"github.com/azyablov/srljrpc/formats"
 )
 
 const (
@@ -412,6 +413,61 @@ func TestValidate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCLI(t *testing.T) {
+	// Get default client
+	c := helperGetDefClient(t)
+
+	// CLI with default target
+	shVerTABLE, err := srljrpc.NewCLIRequest([]string{"show version"}, formats.TABLE)
+	if err != nil {
+		t.Fatalf("can't create CLI request: %v", err)
+	}
+
+	shRouteTableJSON, err := srljrpc.NewCLIRequest([]string{"show network-instance default route-table"}, formats.JSON)
+	if err != nil {
+		t.Fatalf("can't create CLI request: %v", err)
+	}
+	// SetUpdate with default target
+	var validateTestData = []struct {
+		testName string
+		cliReq   *srljrpc.CLIRequest
+		expErr   error
+		errMsg   string
+	}{
+		{testName: "CLI show version",
+			cliReq: shVerTABLE,
+			expErr: nil, errMsg: "cli method failed: "},
+		{testName: "CLI show network-instance default route-table",
+			cliReq: shRouteTableJSON,
+			expErr: nil, errMsg: "cli method failed: "},
+	}
+	for _, td := range validateTestData {
+		t.Run(td.testName, func(t *testing.T) {
+			r, err := c.Do(td.cliReq)
+			switch {
+			case err == nil && td.expErr == nil:
+			case err != nil && td.expErr != nil:
+				if !strings.Contains(err.Error(), td.expErr.Error()) {
+					t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
+				}
+			case err == nil && td.expErr != nil:
+				t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
+			case err != nil && td.expErr == nil:
+				t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
+			default:
+				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErr)
+			}
+			_, err = r.Marshal()
+			if err != nil {
+				t.Fatalf("can't marshal response: %v", err)
+			}
+			// for debug purposes
+			// t.Logf("got response: %+v", string(b))
+		})
+	}
+
 }
 
 func helperGetDefClient(t *testing.T) *srljrpc.JSONRPCClient {
