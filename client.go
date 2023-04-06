@@ -19,11 +19,10 @@ import (
 )
 
 type TLSAttr struct {
-	RootCA     *string // CA certificate file in PEM format.
-	Cert       *string // Client certificate file in PEM format.
-	Key        *string // Client private key file.
-	InsecConn  *bool   // Insecure connection.
-	SkipVerify *bool   // Disable certificate validation during TLS session ramp-up.
+	CAFile     *string `json:"ca_file,omitempty"`     // CA certificate file in PEM format.
+	CertFile   *string `json:"cert_file,omitempty"`   // Client certificate file in PEM format.
+	KeyFile    *string `json:"key_file,omitempty"`    // Client private key file.
+	SkipVerify *bool   `json:"skip_verify,omitempty"` // Disable certificate validation during TLS session ramp-up.
 }
 
 type cred struct {
@@ -58,10 +57,16 @@ type ClientOption func(*JSONRPCClient) error
 
 // +NewJSONRPCClient(JSONRPCTarget t) JSONRPCClient
 // Creates a new JSON RPC client.
-func NewJSONRPCClient(host *string, opts []ClientOption) (*JSONRPCClient, error) {
+func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error) {
 
 	// client
 	c := &JSONRPCClient{}
+	c.target = &JSONRPCTarget{}
+	// host
+	if host == nil {
+		return nil, fmt.Errorf("host is not set, but mandatory")
+	}
+	c.target.host = host
 
 	// applying options
 	for _, opt := range opts {
@@ -132,7 +137,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	}
 
 	if rpcResp.Error != nil {
-		return nil, fmt.Errorf("got an JSON-RPC error: %v", rpcResp.Error)
+		return nil, fmt.Errorf("JSON-RPC error: %+v", rpcResp.Error)
 	}
 
 	return &rpcResp, nil
@@ -153,10 +158,25 @@ func (c *JSONRPCClient) Get(path string) (*Response, error) {
 	return c.Do(r)
 }
 
+// Get state method of JSONRPCClient. Executes a GET request against running datastore.
+func (c *JSONRPCClient) State(path string) (*Response, error) {
+	opts := []CommandOptions{WithDatastore(datastores.STATE)}
+	cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
+
+	if err != nil {
+		return nil, err
+	}
+	r, err := NewRequest(methods.GET, []*Command{cmd}, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(r)
+}
+
 // SetUpdate method of JSONRPCClient. Executes a SET UPDATE action request against running datastore.
-func (c *JSONRPCClient) SetUpdate(path string, value CommandValue) (*Response, error) {
-	opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(actions.UPDATE, path, value, opts...)
+func (c *JSONRPCClient) Update(path string, value CommandValue) (*Response, error) {
+	//opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
+	cmd, err := NewCommand(actions.UPDATE, path, value)
 	if err != nil {
 		return nil, err
 	}
@@ -164,13 +184,18 @@ func (c *JSONRPCClient) SetUpdate(path string, value CommandValue) (*Response, e
 	if err != nil {
 		return nil, err
 	}
+	// b, err := r.Marshal()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// fmt.Printf("Request: %s", string(b))
 	return c.Do(r)
 }
 
 // SetReplace method of JSONRPCClient. Executes a SET  REPLACE action request against running datastore.
-func (c *JSONRPCClient) SetReplace(path string, value CommandValue) (*Response, error) {
-	opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(actions.REPLACE, path, value, opts...)
+func (c *JSONRPCClient) Replace(path string, value CommandValue) (*Response, error) {
+	//opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
+	cmd, err := NewCommand(actions.REPLACE, path, value)
 	if err != nil {
 		return nil, err
 	}
@@ -182,9 +207,9 @@ func (c *JSONRPCClient) SetReplace(path string, value CommandValue) (*Response, 
 }
 
 // SetDelete method of JSONRPCClient. Executes a SET DELETE action request against running datastore.
-func (c *JSONRPCClient) SetDelete(path string) (*Response, error) {
-	opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(actions.DELETE, path, CommandValue(""), opts...)
+func (c *JSONRPCClient) Delete(path string) (*Response, error) {
+	// opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
+	cmd, err := NewCommand(actions.DELETE, path, CommandValue(""))
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +222,8 @@ func (c *JSONRPCClient) SetDelete(path string) (*Response, error) {
 
 // SetCreate method of JSONRPCClient. Executes a SET request against running datastore.
 func (c *JSONRPCClient) Validate(action actions.EnumActions, path string, value CommandValue) (*Response, error) {
-	opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(action, path, value, opts...)
+	// opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
+	cmd, err := NewCommand(action, path, value)
 	if err != nil {
 		return nil, err
 	}
@@ -210,14 +235,15 @@ func (c *JSONRPCClient) Validate(action actions.EnumActions, path string, value 
 }
 
 func (c *JSONRPCClient) populateDefaults() error {
-	// host
-	if c.target.host == nil {
-		return fmt.Errorf("host is not set, but mandatory")
-	}
-
+	var (
+		defUsername = "admin"
+		defPass     = "admin"
+		defPort     = 443
+		defTLS      = tls.Config{InsecureSkipVerify: true}
+	)
 	// port
 	if c.target.port == nil {
-		*c.target.port = 443
+		c.target.port = &defPort
 	}
 
 	// setting the timeout
@@ -227,25 +253,24 @@ func (c *JSONRPCClient) populateDefaults() error {
 
 	// credentials
 	if c.target.username == nil {
-		*c.target.username = "admin"
-		*c.target.password = "admin"
+		c.target.username = &defUsername
+		c.target.password = &defPass
 	}
 
 	// ... setting the TLS configuration
 	if c.target.tlsConfig == nil {
-		c.target.tlsConfig = &tls.Config{InsecureSkipVerify: true} // Skipping verification
+		c.target.tlsConfig = &defTLS // Skipping verification
 	}
 	return nil
 }
 
 func (c *JSONRPCClient) targetVerification() error {
-
 	// checking for the system version and hostname
-	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue(""), nil)
+	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
 		return err
 	}
-	sysVerCmd, err := NewCommand(actions.NONE, "/system/version", CommandValue(""), nil)
+	sysVerCmd, err := NewCommand(actions.NONE, "/system/information/version", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
 		return err
 	}
@@ -308,12 +333,12 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 		tlsConfig.InsecureSkipVerify = *t.SkipVerify
 		if !*t.SkipVerify {
 			tlsConfig.ServerName = *c.target.host
-			if len(*t.RootCA) == 0 || (!(len(*t.Cert) == 0) && len(*t.Key) == 0) || (len(*t.Cert) == 0 && !(len(*t.Key) == 0)) {
+			if len(*t.CAFile) == 0 || (!(len(*t.CertFile) == 0) && len(*t.KeyFile) == 0) || (len(*t.CertFile) == 0 && !(len(*t.KeyFile) == 0)) {
 				return fmt.Errorf("one of more files for rootCA / certificate / key are not specified")
 			}
 
 			// Populating root CA certificates pool
-			fh, err := os.Open(*t.RootCA)
+			fh, err := os.Open(*t.CAFile)
 			if err != nil {
 				return fmt.Errorf("populating root CA certificates pool: %s", err)
 			}
@@ -329,7 +354,7 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			tlsConfig.RootCAs = certCAPool
 
 			// Loading certificate
-			certTLS, err := tls.LoadX509KeyPair(*t.Cert, *t.Key)
+			certTLS, err := tls.LoadX509KeyPair(*t.CertFile, *t.KeyFile)
 			if err != nil {
 				return fmt.Errorf("can't load certificate keypair: %s", err)
 			}

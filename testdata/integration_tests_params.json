@@ -1,0 +1,35 @@
+{   
+    "default_target": {
+        "host": "clab-2nd-srl1",
+        "username": "admin",
+        "password": "admin",
+        "port": 443,
+        "tls_attr": {
+            "skip_verify": true
+        }
+    },
+    "cert_target": {
+        "host": "clab-evpn-leaf1",
+        "username": "admin",
+        "password": "admin",
+        "port": 443,
+        "tls_attr": {
+            "skip_verify": false,
+            "cert_file": "/home/azyablov/clab/nokia-evpn-lab/clab-evpn/ca/spine1/spine1.pem",
+            "key_file": "/home/azyablov/clab/nokia-evpn-lab/clab-evpn/ca/spine1/spine1-key.pem",
+            "ca_file": "/home/azyablov/clab/nokia-evpn-lab/clab-evpn/ca/root/root-ca.pem"
+        }
+    },
+    "cert_target_incorrect_ca": {
+        "host": "clab-evpn-leaf1",
+        "username": "admin",
+        "password": "admin",
+        "port": 443,
+        "tls_attr": {
+            "skip_verify": false,
+            "cert_file": "/home/azyablov/clab/nokia-evpn-lab/clab-evpn/ca/spine1/spine1.pem",
+            "key_file": "/home/azyablov/clab/nokia-evpn-lab/clab-evpn/ca/spine1/spine1-key.pem",
+            "ca_file": "/home/azyablov/clab/2node/clab-2nd/ca/root/root-ca.pem"
+        }
+    }
+}

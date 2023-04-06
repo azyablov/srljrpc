@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/azyablov/srljrpc/actions"
 	"github.com/azyablov/srljrpc/datastores"
 	"github.com/azyablov/srljrpc/formats"
 	"github.com/azyablov/srljrpc/methods"
@@ -175,7 +176,11 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			if c.Action == nil {
 				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
 			}
-			if c.Value == "" && !strings.Contains(c.Path, ":") {
+			a, err := c.Action.GetAction()
+			if err != nil {
+				return err
+			}
+			if c.Value == "" && !strings.Contains(c.Path, ":") && a != actions.DELETE {
 				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
 			}
 			if strings.Contains(c.Path, ":") {
