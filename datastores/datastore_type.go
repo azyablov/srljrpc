@@ -76,9 +76,17 @@ func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 	return nil
 }
 
-func (m *Datastore) DatastoreName() string {
-	if m.Datastore == "" {
+func (d *Datastore) DatastoreName() string {
+	if d.Datastore == "" {
 		return "candidate"
 	}
-	return m.Datastore
+	return d.Datastore
+}
+
+func (d *Datastore) CleanDatastore() {
+	d.Datastore = ""
+}
+
+func (d *Datastore) IsDefaultDatastore() bool {
+	return d.Datastore == ""
 }
