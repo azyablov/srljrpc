@@ -149,6 +149,7 @@ type CommandValue string
 type Params struct {
 	Commands []Command `json:"commands"`
 	*formats.OutputFormat
+	*datastores.Datastore
 }
 
 func (p *Params) appendCommands(commands []*Command) error {
@@ -163,6 +164,11 @@ func (p *Params) appendCommands(commands []*Command) error {
 
 func (p *Params) getCmds() *[]Command {
 	return &p.Commands
+}
+
+func (p *Params) withDatastore(ds datastores.EnumDatastores) error {
+	p.Datastore = &datastores.Datastore{}
+	return p.Datastore.SetDatastore(ds)
 }
 
 //	class CLIParams {
