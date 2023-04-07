@@ -83,6 +83,39 @@ func WithOutputFormat(of formats.EnumOutputFormats) RequestOption {
 	}
 }
 
+func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
+	return func(r *Request) error {
+		m, _ := r.GetMethod()
+		if m == methods.SET {
+			for _, c := range r.Params.Commands {
+				c.CleanDatastore()
+				a, err := c.Action.GetAction()
+				if err != nil {
+					return err
+				}
+				// The set method can be used with tools datastores only with the update action.
+				if ds == datastores.TOOLS && a != actions.UPDATE {
+					return fmt.Errorf("only update method is allowed with TOOLS datastore")
+				}
+			}
+			if ds != datastores.CANDIDATE && ds != datastores.TOOLS {
+				return fmt.Errorf("only CANDIDATE and TOOLS datastores allowed for method %s", r.Method.MethodName())
+			}
+			return r.Params.withDatastore(ds)
+		}
+		if m == methods.VALIDATE {
+			for _, c := range r.Params.Commands {
+				c.CleanDatastore()
+			}
+			if ds != datastores.CANDIDATE {
+				return fmt.Errorf("only CANDIDATE datastore allowed for method %s", r.Method.MethodName())
+			}
+			return r.Params.withDatastore(ds)
+		}
+		return fmt.Errorf("datastore specification on Request.Params level is not supported for method %s", r.MethodName())
+	}
+}
+
 // +NewRequest(EnumMethods m, List~GetCommand~ cmds, List~RequestOption~ opts) Request
 func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (*Request, error) {
 	r := &Request{}
@@ -104,6 +137,7 @@ func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (
 	// set params and output format
 	r.Params = &Params{}
 	r.Params.OutputFormat = &formats.OutputFormat{}
+	r.Params.Datastore = &datastores.Datastore{}
 
 	// set commands
 	err = apply_cmds(r, cmds)
@@ -165,14 +199,13 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			if c.Path == "" {
 				return fmt.Errorf("path not found, but should be specified for method %s", r.Method.MethodName())
 			}
-			// Used to verify that the system accepts a configuration transaction before applying it to the system.
-			d, err := c.GetDatastore()
-			if err != nil {
-				return err
+
+			// Check if datastore has been set to default datastore.
+			if !c.IsDefaultDatastore() {
+				return fmt.Errorf("command level datastore must not be set for method %s", r.Method.MethodName())
 			}
-			if d != datastores.CANDIDATE && d != datastores.TOOLS {
-				return fmt.Errorf("datastore %s not allowed for method %s", c.DatastoreName(), r.Method.MethodName())
-			}
+
+			// Action command is mandatory with the set method.
 			if c.Action == nil {
 				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
 			}
@@ -180,9 +213,18 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			if err != nil {
 				return err
 			}
+			// check if action is valid for the set method
+			if a == actions.NONE {
+				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+			}
+			// Check if value is specified for the set method.
 			if c.Value == "" && !strings.Contains(c.Path, ":") && a != actions.DELETE {
 				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
 			}
+			if c.Value != "" && a == actions.DELETE {
+				return fmt.Errorf("value specified for action DELETE for method %s", r.Method.MethodName())
+			}
+			// Check if value is specified in the path and as a separate value for the set method.
 			if strings.Contains(c.Path, ":") {
 				sl := strings.Split(c.Path, ":")
 				if len(sl) != 2 {
@@ -199,19 +241,29 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			if c.Path == "" {
 				return fmt.Errorf("path not found, but should be specified for method %s", r.Method.MethodName())
 			}
-			// Used to verify that the system accepts a configuration transaction before applying it to the system.
-			d, err := c.GetDatastore()
-			if err != nil {
-				return err
+
+			// Check if datastore has been set to default datastore.
+			if !c.IsDefaultDatastore() {
+				return fmt.Errorf("command level datastore must not be set for method %s", r.Method.MethodName())
 			}
-			if d != datastores.CANDIDATE {
-				return fmt.Errorf("datastore %s not allowed for method %s", c.DatastoreName(), r.Method.MethodName())
-			}
+			// Action command is mandatory with the set method.
 			if c.Action == nil {
 				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
 			}
+			a, err := c.Action.GetAction()
+			if err != nil {
+				return err
+			}
+			// check if action is valid for the validate method
+			if a == actions.NONE {
+				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+			}
+			// Check if value is specified for the set method.
 			if c.Value == "" && !strings.Contains(c.Path, ":") {
 				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
+			}
+			if c.Value != "" && a == actions.DELETE {
+				return fmt.Errorf("value specified for action DELETE for method %s", r.Method.MethodName())
 			}
 			if strings.Contains(c.Path, ":") {
 				sl := strings.Split(c.Path, ":")
