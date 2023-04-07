@@ -113,16 +113,18 @@ func TestNewRequest_Set(t *testing.T) {
 		value  srljrpc.CommandValue
 		opts   []srljrpc.CommandOptions
 	}{
-		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.TOOLS)}},                                                         // should succeed
-		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                   // should succeed
-		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue("SetDelete"), []srljrpc.CommandOptions{srljrpc.WithDefaults(), srljrpc.WithoutRecursion(), srljrpc.WithDatastore(datastores.CANDIDATE)}}, // should succeed
-		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.RUNNING)}},                                                                // should be failing due to unsupported datastore by SET
-		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue("test"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.TOOLS)}},                                                                // should be failing due to unsupported action by SET
-		{actions.UPDATE, "", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                                                    // should be failing due to empty path
-		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                              // should be failing due to empty value
-		{actions.UPDATE, "/system/name/host-name:test", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                         // should not fail, bcz of :test value specified as part of path
-		{actions.REPLACE, "/system/name/host-name:test", srljrpc.CommandValue("TEST"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                    // should fail, bcz of :test value specified as part of path and value is not empty
-		{actions.REPLACE, "/system/name/host-name:test:TEST", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                   // should not fail, bcz of :test:TEST value specified as part of path
+		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOptions{}},                                              // should succeed
+		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOptions{}},                                            // should succeed
+		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue("SetDelete"), []srljrpc.CommandOptions{}},                                              // should fail cause of value not allowed
+		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.RUNNING)}},              // should be failing due to unsupported datastore by SET
+		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue("test"), []srljrpc.CommandOptions{}},                                                     // should be failing due to unsupported action NONE by SET
+		{actions.UPDATE, "", srljrpc.CommandValue("test"), []srljrpc.CommandOptions{}},                                                                         // should be failing due to empty path
+		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{}},                                                       // should be failing due to empty value
+		{actions.UPDATE, "/system/name/host-name:test", srljrpc.CommandValue(""), []srljrpc.CommandOptions{}},                                                  // should not fail, bcz of :test value specified as part of path
+		{actions.REPLACE, "/system/name/host-name:test", srljrpc.CommandValue("TEST"), []srljrpc.CommandOptions{}},                                             // should fail, bcz of :test value specified as part of path and value is not empty
+		{actions.REPLACE, "/system/name/host-name:test:TEST", srljrpc.CommandValue(""), []srljrpc.CommandOptions{}},                                            // should not fail, bcz of :test:TEST value specified as part of path
+		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.TOOLS)}},       // should fail because of datastore specified.
+		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}}, // should fail because of datastore specified.
 	}
 	cmdResults := []*srljrpc.Command{}
 
@@ -143,16 +145,18 @@ func TestNewRequest_Set(t *testing.T) {
 		expReqErr error
 		tmplJSON  string
 	}{
-		{"Basic SET with TOOLS datastore", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdate","action":"update","datastore":"tools"}]}}`},
-		{"Basic SET with CANDIDATE datastore", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetReplace","action":"replace","datastore":"candidate"}]}}`},
-		{"Basic SET with options", cmdResults[2], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetDelete","recursive":false,"include-field-defaults":true,"action":"delete","datastore":"candidate"}]}}`},
-		{"Basic SET with unsupported datastore RUNNING}", cmdResults[3], fmt.Errorf("datastore running not allowed for method %s", m), `null`},
+		{"Basic SET UPDATE w/o datastore", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdate","action":"update"}]}}`},
+		{"Basic SET REPLACE w/o datastore", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetReplace","action":"replace"}]}}`},
+		{"Basic SET DELETE w/o datastore", cmdResults[2], fmt.Errorf("value specified for action DELETE for method %s", m), `null`},
+		{"Basic SET with unsupported datastore RUNNING}", cmdResults[3], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
 		{"Basic SET without action", cmdResults[4], fmt.Errorf("action not found, but should be specified for method %s", m), `null`},
 		{"Basic SET with empty path", cmdResults[5], fmt.Errorf("path not found, but should be specified for method %s", m), `null`},
 		{"Basic SET with empty value", cmdResults[6], fmt.Errorf("value isn't specified or not found in the path for method %s", m), `null`},
-		{"Basic SET with k:v path", cmdResults[7], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name:test","action":"update","datastore":"candidate"}]}}`},
+		{"Basic SET with k:v path", cmdResults[7], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name:test","action":"update"}]}}`},
 		{"Basic SET with k:v path and value", cmdResults[8], fmt.Errorf("value specified in the path and as a separate value for method %s", m), `null`},
 		{"Basic SET with incorrect k:v path", cmdResults[9], fmt.Errorf("invalid k:v path specification for method %s", m), `null`},
+		{"Basic SET with unsupported datastore  TOOLS", cmdResults[10], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
+		{"Basic SET with unsupported datastore  CANDIDATE", cmdResults[11], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
 	}
 
 	for _, td := range testData {
@@ -206,23 +210,24 @@ func TestNewRequest_Set(t *testing.T) {
 
 func TestNewRequest_Validate(t *testing.T) {
 	// VALIDATE method testing
-	// SET method testing
 	cmdArgs := []struct {
 		action actions.EnumActions
 		path   string
 		value  srljrpc.CommandValue
 		opts   []srljrpc.CommandOptions
 	}{
-		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("ValidateUpdate"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                     // should succeed
-		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("ValidateReplace"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                   // should succeed
-		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue("ValidateDelete"), []srljrpc.CommandOptions{srljrpc.WithDefaults(), srljrpc.WithoutRecursion(), srljrpc.WithDatastore(datastores.CANDIDATE)}}, // should succeed
-		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.RUNNING)}},                                                                     // should be failing due to unsupported datastore by VALIDATE
-		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue("test"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                                 // should be failing due to unsupported action by VALIDATE
-		{actions.UPDATE, "", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                                                         // should be failing due to empty path
-		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                                   // should be failing due to empty value
-		{actions.UPDATE, "/system/name/host-name:test", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                              // should not fail, bcz of :test value specified as part of path
-		{actions.REPLACE, "/system/name/host-name:test", srljrpc.CommandValue("TEST"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                         // should fail, bcz of :test value specified as part of path and value is not empty
-		{actions.REPLACE, "/system/name/host-name:test:TEST", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}},                                                        // should not fail, bcz of :test:TEST value specified as part of path
+		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOptions{}},                                              // should succeed
+		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOptions{}},                                            // should succeed
+		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue("SetDelete"), []srljrpc.CommandOptions{}},                                              // should fail cause of value not allowed
+		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.RUNNING)}},              // should be failing due to unsupported datastore by SET
+		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue("test"), []srljrpc.CommandOptions{}},                                                     // should be failing due to unsupported action NONE by SET
+		{actions.UPDATE, "", srljrpc.CommandValue("test"), []srljrpc.CommandOptions{}},                                                                         // should be failing due to empty path
+		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOptions{}},                                                       // should be failing due to empty value
+		{actions.UPDATE, "/system/name/host-name:test", srljrpc.CommandValue(""), []srljrpc.CommandOptions{}},                                                  // should not fail, bcz of :test value specified as part of path
+		{actions.REPLACE, "/system/name/host-name:test", srljrpc.CommandValue("TEST"), []srljrpc.CommandOptions{}},                                             // should fail, bcz of :test value specified as part of path and value is not empty
+		{actions.REPLACE, "/system/name/host-name:test:TEST", srljrpc.CommandValue(""), []srljrpc.CommandOptions{}},                                            // should not fail, bcz of :test:TEST value specified as part of path
+		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.TOOLS)}},       // should fail because of datastore specified.
+		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOptions{srljrpc.WithDatastore(datastores.CANDIDATE)}}, // should fail because of datastore specified.
 	}
 	cmdResults := []*srljrpc.Command{}
 
@@ -243,16 +248,18 @@ func TestNewRequest_Validate(t *testing.T) {
 		expReqErr error
 		tmplJSON  string
 	}{
-		{"Basic VALIDATE with TOOLS datastore", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"ValidateUpdate","action":"update","datastore":"candidate"}]}}`},
-		{"Basic VALIDATE with CANDIDATE datastore", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"ValidateReplace","action":"replace","datastore":"candidate"}]}}`},
-		{"Basic VALIDATE with options", cmdResults[2], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"ValidateDelete","recursive":false,"include-field-defaults":true,"action":"delete","datastore":"candidate"}]}}`},
-		{"Basic VALIDATE with unsupported datastore RUNNING}", cmdResults[3], fmt.Errorf("datastore running not allowed for method %s", m), `null`},
+		{"Basic VALIDATE UPDATE w/o datastore", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdate","action":"update"}]}}`},
+		{"Basic VALIDATE REPLACE w/o datastore", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetReplace","action":"replace"}]}}`},
+		{"Basic VALIDATE DELETE w/o datastore", cmdResults[2], fmt.Errorf("value specified for action DELETE for method %s", m), `null`},
+		{"Basic VALIDATE with unsupported datastore RUNNING}", cmdResults[3], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
 		{"Basic VALIDATE without action", cmdResults[4], fmt.Errorf("action not found, but should be specified for method %s", m), `null`},
 		{"Basic VALIDATE with empty path", cmdResults[5], fmt.Errorf("path not found, but should be specified for method %s", m), `null`},
 		{"Basic VALIDATE with empty value", cmdResults[6], fmt.Errorf("value isn't specified or not found in the path for method %s", m), `null`},
-		{"Basic VALIDATE with k:v path", cmdResults[7], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name:test","action":"update","datastore":"candidate"}]}}`},
+		{"Basic VALIDATE with k:v path", cmdResults[7], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name:test","action":"update"}]}}`},
 		{"Basic VALIDATE with k:v path and value", cmdResults[8], fmt.Errorf("value specified in the path and as a separate value for method %s", m), `null`},
 		{"Basic VALIDATE with incorrect k:v path", cmdResults[9], fmt.Errorf("invalid k:v path specification for method %s", m), `null`},
+		{"Basic VALIDATE with unsupported datastore TOOLS", cmdResults[10], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
+		{"Basic VALIDATE with unsupported datastore CANDIDATE", cmdResults[11], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
 	}
 
 	for _, td := range testData {
