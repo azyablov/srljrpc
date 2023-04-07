@@ -15,6 +15,7 @@ import (
 
 	"github.com/azyablov/srljrpc/actions"
 	"github.com/azyablov/srljrpc/datastores"
+	"github.com/azyablov/srljrpc/formats"
 	"github.com/azyablov/srljrpc/methods"
 )
 
@@ -51,6 +52,11 @@ type JSONRPCClient struct {
 	hostname string
 	sysVer   string
 	target   *JSONRPCTarget
+}
+
+type PV struct {
+	Path  string       `json:"path"`
+	Value CommandValue `json:"value"`
 }
 
 type ClientOption func(*JSONRPCClient) error
@@ -144,14 +150,18 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 }
 
 // Get method of JSONRPCClient. Executes a GET request against running datastore.
-func (c *JSONRPCClient) Get(path string) (*Response, error) {
+func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
 	opts := []CommandOptions{WithDatastore(datastores.RUNNING)}
-	cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
+	var cmds []*Command
+	for _, path := range paths {
+		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, cmd)
 
-	if err != nil {
-		return nil, err
 	}
-	r, err := NewRequest(methods.GET, []*Command{cmd}, nil)
+	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -159,14 +169,18 @@ func (c *JSONRPCClient) Get(path string) (*Response, error) {
 }
 
 // Get state method of JSONRPCClient. Executes a GET request against running datastore.
-func (c *JSONRPCClient) State(path string) (*Response, error) {
+func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 	opts := []CommandOptions{WithDatastore(datastores.STATE)}
-	cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
+	var cmds []*Command
+	for _, path := range paths {
+		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, cmd)
 	}
-	r, err := NewRequest(methods.GET, []*Command{cmd}, nil)
+	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -174,13 +188,17 @@ func (c *JSONRPCClient) State(path string) (*Response, error) {
 }
 
 // SetUpdate method of JSONRPCClient. Executes a SET UPDATE action request against running datastore.
-func (c *JSONRPCClient) Update(path string, value CommandValue) (*Response, error) {
-	//opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(actions.UPDATE, path, value)
-	if err != nil {
-		return nil, err
+func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
+	var cmds []*Command
+	for _, pv := range pvs {
+		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
+		if err != nil {
+			return nil, err
+		}
+
+		cmds = append(cmds, cmd)
 	}
-	r, err := NewRequest(methods.SET, []*Command{cmd}, nil)
+	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
 		return nil, err
 	}
@@ -188,13 +206,17 @@ func (c *JSONRPCClient) Update(path string, value CommandValue) (*Response, erro
 }
 
 // SetReplace method of JSONRPCClient. Executes a SET  REPLACE action request against running datastore.
-func (c *JSONRPCClient) Replace(path string, value CommandValue) (*Response, error) {
-	//opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(actions.REPLACE, path, value)
-	if err != nil {
-		return nil, err
+func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
+	var cmds []*Command
+	for _, pv := range pvs {
+		cmd, err := NewCommand(actions.REPLACE, pv.Path, pv.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		cmds = append(cmds, cmd)
 	}
-	r, err := NewRequest(methods.SET, []*Command{cmd}, nil)
+	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
 		return nil, err
 	}
@@ -202,27 +224,60 @@ func (c *JSONRPCClient) Replace(path string, value CommandValue) (*Response, err
 }
 
 // SetDelete method of JSONRPCClient. Executes a SET DELETE action request against running datastore.
-func (c *JSONRPCClient) Delete(path string) (*Response, error) {
-	// opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(actions.DELETE, path, CommandValue(""))
-	if err != nil {
-		return nil, err
+func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
+	var cmds []*Command
+	for _, path := range paths {
+		cmd, err := NewCommand(actions.DELETE, path, CommandValue(""))
+		if err != nil {
+			return nil, err
+		}
+
+		cmds = append(cmds, cmd)
 	}
-	r, err := NewRequest(methods.SET, []*Command{cmd}, nil)
+	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
 		return nil, err
 	}
 	return c.Do(r)
 }
 
-// SetCreate method of JSONRPCClient. Executes a SET request against running datastore.
-func (c *JSONRPCClient) Validate(action actions.EnumActions, path string, value CommandValue) (*Response, error) {
-	// opts := []CommandOptions{WithDatastore(datastores.CANDIDATE)}
-	cmd, err := NewCommand(action, path, value)
+// Validate() method SET. Executes an specified action request against CANDIDATE datastore.
+func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Response, error) {
+	var cmds []*Command
+	for _, pv := range pvs {
+		cmd, err := NewCommand(action, pv.Path, pv.Value)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, cmd)
+	}
+
+	r, err := NewRequest(methods.VALIDATE, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewRequest(methods.VALIDATE, []*Command{cmd}, nil)
+	return c.Do(r)
+}
+
+// Tools() method SET. Executes an UPDATE action request against TOOLS datastore.
+func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
+	var cmds []*Command
+	for _, pv := range pvs {
+		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, cmd)
+	}
+	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.TOOLS))
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(r)
+}
+
+func (c *JSONRPCClient) CLI(cmds []string, of formats.EnumOutputFormats) (*Response, error) {
+	r, err := NewCLIRequest(cmds, of)
 	if err != nil {
 		return nil, err
 	}
