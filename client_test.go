@@ -183,20 +183,20 @@ func TestGet(t *testing.T) {
 	// Get with default target
 	var getTestData = []struct {
 		testName string
-		path     string
+		paths    []string
 		expErr   error
 		errMsg   string
 	}{
 		{testName: "Get against RUNNING datastore with default target",
-			path:   "/system/json-rpc-server",
+			paths:  []string{"/system/json-rpc-server", "/network-instance[name=mgmt]"},
 			expErr: nil, errMsg: "GET method failed: "},
 		{testName: "Get against RUNNING datastore with default target and invalid path",
-			path:   "/system/json-rpc-server/invalid",
+			paths:  []string{"/system/json-rpc-server/invalid"},
 			expErr: fmt.Errorf("JSON-RPC error:"), errMsg: "expect JSON-RPC error: "},
 	}
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Get(td.path)
+			_, err := c.Get(td.paths...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -221,20 +221,20 @@ func TestState(t *testing.T) {
 	// State with default target
 	var getTestData = []struct {
 		testName string
-		path     string
+		paths    []string
 		expErr   error
 		errMsg   string
 	}{
 		{testName: "Get against STATE datastore with default target",
-			path:   "/system/lldp/statistics",
+			paths:  []string{"/system/lldp/statistics", "/network-instance[name=mgmt]/interface[name=mgmt0.0]/oper-state"},
 			expErr: nil, errMsg: "get method failed: "},
 		{testName: "Get with default target and invalid path",
-			path:   "/lldp/statistics/invalid",
+			paths:  []string{"/lldp/statistics/invalid"},
 			expErr: fmt.Errorf("JSON-RPC error:"), errMsg: "expect JSON-RPC error: "},
 	}
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.State(td.path)
+			_, err := c.State(td.paths...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -255,32 +255,32 @@ func TestState(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	// Get default client
 	c := helperGetDefClient(t)
-
 	// SetUpdate with default target
 	var setTestData = []struct {
 		testName string
-		path     string
-		value    srljrpc.CommandValue
+		pvs      []srljrpc.PV
 		expErr   error
 		errMsg   string
 	}{
 		{testName: "Set Update against CANDIDATE datastore with default target",
-			path:   "/interface[name=system0]/description",
-			value:  srljrpc.CommandValue("test"),
+			pvs: []srljrpc.PV{
+				{"/interface[name=system0]/description", srljrpc.CommandValue("test")},
+				{"/interface[name=mgmt0]/description", srljrpc.CommandValue("MGMT")},
+			},
 			expErr: nil, errMsg: "set update method failed: "},
 		{testName: "Set Update against CANDIDATE datastore with default target and invalid path",
-			path:   "/interface[name=system0]/invalid",
-			value:  srljrpc.CommandValue("test"),
+			pvs: []srljrpc.PV{
+				{"/interface[name=system0]/invalid", srljrpc.CommandValue("test")}},
 			expErr: fmt.Errorf("JSON-RPC error:"), errMsg: "expect JSON-RPC error: "},
 		{testName: "Set Update against CANDIDATE datastore with default target and missed value",
-			path:   "/interface[name=system0]/description",
-			value:  srljrpc.CommandValue(""),
+			pvs: []srljrpc.PV{
+				{"/interface[name=system0]/description", srljrpc.CommandValue("")}},
 			expErr: fmt.Errorf("value isn't specified or not found in the path for method set"),
 			errMsg: "expect value not specified error: "},
 	}
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Update(td.path, td.value)
+			_, err := c.Update(td.pvs...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -305,20 +305,20 @@ func TestReplace(t *testing.T) {
 	// SetReplace with default target
 	var getTestData = []struct {
 		testName string
-		path     string
+		pvs      []srljrpc.PV
 		expErr   error
 		errMsg   string
 	}{
 		{testName: "Set Replace against CANDIDATE datastore with default target",
-			path:   "/interface[name=system0]/description:test",
+			pvs:    []srljrpc.PV{{"/interface[name=system0]/description:test", srljrpc.CommandValue("")}},
 			expErr: nil, errMsg: "set replace method failed: "},
 		{testName: "Set Replace against CANDIDATE datastore with default target and invalid path",
-			path:   "/interface[name=system0]/invalid:test",
+			pvs:    []srljrpc.PV{{"/interface[name=system0]/invalid:test", srljrpc.CommandValue("")}},
 			expErr: fmt.Errorf("JSON-RPC error:"), errMsg: "expect JSON-RPC error: "},
 	}
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Replace(td.path, srljrpc.CommandValue(""))
+			_, err := c.Replace(td.pvs...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -343,20 +343,20 @@ func TestDelete(t *testing.T) {
 	// Delete with default target
 	var setTestData = []struct {
 		testName string
-		path     string
+		paths    []string
 		expErr   error
 		errMsg   string
 	}{
 		{testName: "Delete against CANDIDATE datastore with default target",
-			path:   "/interface[name=system0]/description",
+			paths:  []string{"/interface[name=system0]/description", "/interface[name=mgmt0]/description"},
 			expErr: nil, errMsg: "delete method failed: "},
 		{testName: "Delete against CANDIDATE datastore with default target and invalid path",
-			path:   "/interface[name=system0]/invalid",
+			paths:  []string{"/interface[name=system0]/invalid"},
 			expErr: fmt.Errorf("JSON-RPC error:"), errMsg: "expect JSON-RPC error: "},
 	}
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Delete(td.path)
+			_, err := c.Delete(td.paths...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -381,23 +381,30 @@ func TestValidate(t *testing.T) {
 	// SetUpdate with default target
 	var validateTestData = []struct {
 		testName string
-		path     string
-		value    srljrpc.CommandValue
+		pvs      []srljrpc.PV
 		expErr   error
 		errMsg   string
 	}{
 		{testName: "Validate against CANDIDATE datastore with default target",
-			path:   "/interface[name=system0]/description",
-			value:  srljrpc.CommandValue("test"),
-			expErr: nil, errMsg: "Set Update method failed: "},
+			pvs: []srljrpc.PV{
+				{"/interface[name=system0]/description", srljrpc.CommandValue("test")},
+				{"/interface[name=mgmt0]/description", srljrpc.CommandValue("MGMT")},
+			},
+			expErr: nil, errMsg: "set update method failed: "},
 		{testName: "Validate against CANDIDATE datastore with default target and invalid path",
-			path:   "/interface[name=system0]/invalid",
-			value:  srljrpc.CommandValue("test"),
+			pvs: []srljrpc.PV{
+				{"/interface[name=system0]/invalid", srljrpc.CommandValue("test")}},
 			expErr: fmt.Errorf("JSON-RPC error:"), errMsg: "expect JSON-RPC error: "},
+		{testName: "Validate against CANDIDATE datastore with default target and missed value",
+			pvs: []srljrpc.PV{
+				{"/interface[name=system0]/description", srljrpc.CommandValue("")}},
+			expErr: fmt.Errorf("value isn't specified or not found in the path for method validate"),
+			errMsg: "expect value not specified error: "},
 	}
+
 	for _, td := range validateTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Validate(actions.UPDATE, td.path, td.value)
+			_, err := c.Validate(actions.UPDATE, td.pvs...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -419,7 +426,7 @@ func TestCLI(t *testing.T) {
 	// Get default client
 	c := helperGetDefClient(t)
 
-	// CLI with default target
+	// CLI with default target using Do()
 	shVerTABLE, err := srljrpc.NewCLIRequest([]string{"show version"}, formats.TABLE)
 	if err != nil {
 		t.Fatalf("can't create CLI request: %v", err)
@@ -429,21 +436,21 @@ func TestCLI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("can't create CLI request: %v", err)
 	}
-	// SetUpdate with default target
-	var validateTestData = []struct {
+	// CLI Do() with default target
+	var cliDoTestData = []struct {
 		testName string
 		cliReq   *srljrpc.CLIRequest
 		expErr   error
 		errMsg   string
 	}{
-		{testName: "CLI show version",
+		{testName: "CLI show version via Do()",
 			cliReq: shVerTABLE,
 			expErr: nil, errMsg: "cli method failed: "},
-		{testName: "CLI show network-instance default route-table",
+		{testName: "CLI show network-instance default route-table via Do()",
 			cliReq: shRouteTableJSON,
-			expErr: nil, errMsg: "cli method failed: "},
+			expErr: nil, errMsg: "cli Do() method failed: "},
 	}
-	for _, td := range validateTestData {
+	for _, td := range cliDoTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			r, err := c.Do(td.cliReq)
 			switch {
@@ -466,6 +473,55 @@ func TestCLI(t *testing.T) {
 			// for debug purposes
 			// t.Logf("got response: %+v", string(b))
 		})
+		var cliTestData = []struct {
+			testName string
+			cmds     []string
+			of       formats.EnumOutputFormats
+			expErr   error
+			errMsg   string
+		}{
+			{testName: "CLI bulk via CLI() in TABLE format",
+				cmds:   []string{"show version", "show network-instance default route-table", "show acl summary"},
+				of:     formats.TABLE,
+				expErr: nil,
+				errMsg: "cli CLI() method failed: "},
+			{testName: "CLI bulk via CLI() in JSON format",
+				cmds:   []string{"show version", "show network-instance default route-table", "show acl summary"},
+				of:     formats.JSON,
+				expErr: nil,
+				errMsg: "cli CLI() method failed: "},
+			{testName: "CLI bulk via CLI() with empty commands",
+				cmds:   []string{"show version", "", "show acl summary"},
+				of:     formats.TEXT,
+				expErr: fmt.Errorf("empty commands are not allowed"),
+				errMsg: "expect cli CLI() method failed: "},
+		}
+		// CLI with default target using CLI()
+		for _, td := range cliTestData {
+			t.Run(td.testName, func(t *testing.T) {
+				r, err := c.CLI(td.cmds, td.of)
+				switch {
+				case err == nil && td.expErr == nil:
+				case err != nil && td.expErr != nil:
+					if !strings.Contains(err.Error(), td.expErr.Error()) {
+						t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
+					}
+				case err == nil && td.expErr != nil:
+					t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
+				case err != nil && td.expErr == nil:
+					t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
+				default:
+					t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErr)
+				}
+				_, err = r.Marshal()
+				if err != nil {
+					t.Fatalf("can't marshal response: %v", err)
+				}
+				// for debug purposes
+				//t.Logf("got response: %+v", string(b))
+			})
+		}
+
 	}
 
 }
