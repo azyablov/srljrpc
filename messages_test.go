@@ -52,7 +52,7 @@ func TestNewRequest_Get(t *testing.T) {
 		{"Basic GET with options", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"get","params":{"commands":[{"path":"/system/name/host-name","recursive":false,"include-field-defaults":true,"datastore":"state"}]}}`},
 		{"Basic GET with value", cmdResults[2], fmt.Errorf("value not allowed for method %s", m), `null`},
 		{"Basic GET with actions", cmdResults[3], fmt.Errorf("action not allowed for method %s", m), `null`},
-		{"Basic GET with TOOLS datastore}", cmdResults[4], fmt.Errorf("datastore %s not allowed for method %s", "tools", m), `null`},
+		{"Basic GET with TOOLS datastore}", cmdResults[4], fmt.Errorf("datastore TOOLS is not allowed for method %s", m), `null`},
 		{"Basic GET with empty path", cmdResults[5], fmt.Errorf("path not found, but should be specified for method %s", m), `null`},
 	}
 

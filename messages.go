@@ -27,6 +27,7 @@ import (
 //
 // Request *-- Method
 // Request *-- Params
+// JSON RPC Request for get / set / validate methods.
 type Request struct {
 	JSONRpcVersion string `json:"jsonrpc"`
 	ID             int    `json:"id"`
@@ -62,6 +63,8 @@ func (r *Request) SetOutputFormat(of formats.EnumOutputFormats) error {
 //		+MethodName() string
 //		+SetOutputFormat(of formats.EnumOutputFormats) error
 //	}
+//
+// Requester is an interface used by the JSON RPC client to send a request to the server.
 type Requester interface {
 	Marshal() ([]byte, error)
 	GetMethod() (methods.EnumMethods, error)
@@ -74,6 +77,9 @@ type Requester interface {
 //		<<function>>
 //		(Request c) error
 //	}
+//
+// RequestOption is a function type that applies options to a Request
+// Sequence of functions is applied to the Request in the order of the list.
 type RequestOption func(*Request) error
 
 // +WithOutputFormat(EnumOutputFormats of) RequestOption
@@ -83,10 +89,22 @@ func WithOutputFormat(of formats.EnumOutputFormats) RequestOption {
 	}
 }
 
+// +WithRequestDatastore(EnumDatastores ds) RequestOption
+// WithRequestDatastore is a RequestOption that sets the datastore for the request in Params level, which overrides the datastore in Command level.
 func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 	return func(r *Request) error {
 		m, _ := r.GetMethod()
-		if m == methods.SET {
+		switch m {
+		case methods.GET:
+			if ds == datastores.TOOLS {
+				return fmt.Errorf("datastore TOOLS is not allowed for method %s", r.Method.MethodName())
+			}
+			for _, c := range r.Params.Commands {
+				c.CleanDatastore()
+			}
+			return r.Params.withDatastore(ds)
+		case methods.SET:
+
 			for _, c := range r.Params.Commands {
 				c.CleanDatastore()
 				a, err := c.Action.GetAction()
@@ -102,8 +120,8 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 				return fmt.Errorf("only CANDIDATE and TOOLS datastores allowed for method %s", r.Method.MethodName())
 			}
 			return r.Params.withDatastore(ds)
-		}
-		if m == methods.VALIDATE {
+		case methods.VALIDATE:
+
 			for _, c := range r.Params.Commands {
 				c.CleanDatastore()
 			}
@@ -111,12 +129,14 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 				return fmt.Errorf("only CANDIDATE datastore allowed for method %s", r.Method.MethodName())
 			}
 			return r.Params.withDatastore(ds)
+		default:
+			return fmt.Errorf("datastore specification on Request.Params level is not supported for method %s", r.MethodName())
 		}
-		return fmt.Errorf("datastore specification on Request.Params level is not supported for method %s", r.MethodName())
 	}
 }
 
 // +NewRequest(EnumMethods m, List~GetCommand~ cmds, List~RequestOption~ opts) Request
+// NewRequest creates a new Request with the given method, commands and options.
 func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (*Request, error) {
 	r := &Request{}
 	// set version
@@ -183,7 +203,7 @@ func apply_cmds(r *Request, cmds []*Command) error {
 				return err
 			}
 			if d == datastores.TOOLS {
-				return fmt.Errorf("datastore %s not allowed for method %s", c.DatastoreName(), r.Method.MethodName())
+				return fmt.Errorf("datastore TOOLS is not allowed for method %s", r.Method.MethodName())
 			}
 			// Action and value are not allowed for the get method.
 			if c.Action != nil {
@@ -343,7 +363,9 @@ func (r *CLIRequest) SetOutputFormat(of formats.EnumOutputFormats) error {
 	return r.Params.OutputFormat.SetFormat(of)
 }
 
-// +NewCLIRequest(List~string~ cmds, List~RequestOption~ opts) CLIRequest
+// +NewCLIRequest(List~string~ cmds, EnumOutputFormats of) CLIRequest
+// NewCLIRequest creates a new CLIRequest object using the provided list of commands executed one by one and output format.
+// Each command should have a response under JSON RPC response message "result" field with respective command index.
 func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, error) {
 	r := &CLIRequest{}
 	// set version
@@ -390,6 +412,8 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 //		note "A Primitive or Structured value that contains additional information about the error. This may be omitted. The value of this member is defined by the Server (e.g. detailed error information, nested errors etc.)."
 //		+string Data
 //	}
+//
+// Generic JSON RPC error object.
 type RpcError struct {
 	ID      int    `json:"id"`
 	Message string `json:"message"`
@@ -411,6 +435,8 @@ type RpcError struct {
 //	}
 //
 // Response o-- RpcError
+// JSON RPC response message. When a rpc call is made, the Server MUST reply with a Response, except for in the case of Notifications. The Response is expressed as a single JSON Object.
+// Result and error are mutually exclusive, so only one of them can be expected. Error is represented as a pointer to RpcError, so it can be nil.
 type Response struct {
 	JSONRpcVersion string          `json:"jsonrpc"`
 	ID             int             `json:"id"`
