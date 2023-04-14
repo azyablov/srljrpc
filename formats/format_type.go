@@ -12,6 +12,7 @@ import "fmt"
 // EnumOutputFormats "1" --o OutputFormat: OneOf
 type EnumOutputFormats int
 
+// By default we use JSON output format, which is empty string OR "json" string in case specified explicitly.
 const (
 	JSON EnumOutputFormats = iota
 	TEXT
@@ -31,6 +32,8 @@ const (
 //		+SetFormat(EnumOutputFormats of) error
 //		#string OutputFormat
 //	}
+//
+// OutputFormat class implementation inherited directly by Params.
 type OutputFormat struct {
 	OutputFormat string `json:"output-format,omitempty"`
 }

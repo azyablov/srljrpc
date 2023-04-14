@@ -17,6 +17,9 @@ type EnumActions int
 //	}
 //
 // EnumActions "1" --o Action: OneOf
+// Additional actions to required for the correct handling of the request:
+// INVALID_ACTION - at the time of object creation, the action is not set.
+// NONE - used for GET method, where the action must not be specified.
 const (
 	INVALID_ACTION             = iota
 	REPLACE        EnumActions = iota + 1
@@ -38,6 +41,8 @@ const (
 //		~SetAction(a: EnumActions): error
 //		+string Action
 //	}
+//
+// Action class implementation.
 type Action struct {
 	Action string `json:"action,omitempty"`
 }

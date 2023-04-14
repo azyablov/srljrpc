@@ -17,6 +17,7 @@ type EnumMethods int
 //	}
 //
 // EnumMethods "1" --o Method: is one of
+// At the time of object creation method is not set, so we use INVALID_METHOD as default value in order to force user to set it properly.
 const (
 	INVALID_METHOD EnumMethods = iota
 	GET                        // note "Used to retrieve configuration and state details from the system. The get method can be used with candidate, running, and state datastores, but cannot be used with the tools datastore."
@@ -38,6 +39,8 @@ const (
 //		~SetMethod(EnumMethods) bool
 //		+string Method
 //	}
+//
+// Method class implementation.
 type Method struct {
 	Method string `json:"method"`
 }
@@ -75,6 +78,7 @@ func (m *Method) SetMethod(rm EnumMethods) error {
 	return nil
 }
 
+// MethodName implementation helper returns method name in case it is set properly, otherwise returns INVALID_METHOD.
 func (m *Method) MethodName() string {
 	if m.Method == "" {
 		return "INVALID_METHOD"

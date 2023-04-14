@@ -17,6 +17,7 @@ type EnumDatastores int
 //	}
 //
 // EnumDatastores "1" --o Datastore: OneOf
+// By default we use CANDIDATE datastore, which is empty string OR "candidate" string in case specified explicitly.
 const (
 	CANDIDATE EnumDatastores = iota
 	RUNNING
@@ -37,6 +38,8 @@ const (
 //		+SetDatastore(d: EnumDatastores): error
 //		+string Datastore
 //	}
+//
+// Datastore class implementation inherited directly by Command (for GET) and Params (for SET/VALIDATE and GET in case Datastore applied for all commands underneath).
 type Datastore struct {
 	Datastore string `json:"datastore,omitempty"`
 }
@@ -76,6 +79,7 @@ func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 	return nil
 }
 
+// Additional implementation helper method to get datastore name as string
 func (d *Datastore) DatastoreName() string {
 	if d.Datastore == "" {
 		return "candidate"
@@ -83,10 +87,12 @@ func (d *Datastore) DatastoreName() string {
 	return d.Datastore
 }
 
+// Additional implementation helper method to clean datastore name, used for Command in case of SET/VALIDATE to clean datastore name for all commands underneath.
 func (d *Datastore) CleanDatastore() {
 	d.Datastore = ""
 }
 
+// Additional implementation helper method to check if datastore is default, used for Command in case of GET to check if datastore is default for all commands underneath.
 func (d *Datastore) IsDefaultDatastore() bool {
 	return d.Datastore == ""
 }
