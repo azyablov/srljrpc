@@ -99,14 +99,10 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 			if ds == datastores.TOOLS {
 				return fmt.Errorf("datastore TOOLS is not allowed for method %s", r.Method.MethodName())
 			}
-			for _, c := range r.Params.Commands {
-				c.CleanDatastore()
-			}
 			return r.Params.withDatastore(ds)
 		case methods.SET:
-
 			for _, c := range r.Params.Commands {
-				c.CleanDatastore()
+				c.CleanDatastore() // clean datastore in commands, to be later if such protective measures are needed, since c.IsDefaultDatastore() added as verification check for SET/VALIDATE
 				a, err := c.Action.GetAction()
 				if err != nil {
 					return err
@@ -121,9 +117,9 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 			}
 			return r.Params.withDatastore(ds)
 		case methods.VALIDATE:
-
+			// clean datastore in commands
 			for _, c := range r.Params.Commands {
-				c.CleanDatastore()
+				c.CleanDatastore() // clean datastore in commands, to be later if such protective measures are needed, since c.IsDefaultDatastore() added as verification check for SET/VALIDATE
 			}
 			if ds != datastores.CANDIDATE {
 				return fmt.Errorf("only CANDIDATE datastore allowed for method %s", r.Method.MethodName())
@@ -343,6 +339,7 @@ type CLIRequest struct {
 	Params *CLIParams `json:"params"`
 }
 
+// Marshalling CLIRequest into JSON.
 func (r *CLIRequest) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
@@ -351,14 +348,20 @@ func (r *CLIRequest) Marshal() ([]byte, error) {
 	return b, nil
 }
 
+// +GetID() int
+// GetID returns the ID of the request.
 func (r *CLIRequest) GetID() int {
 	return r.ID
 }
 
+// +setID(int id)
+// SetID sets the ID of the request. Internal method.
 func (r *CLIRequest) setID(id int) {
 	r.ID = id
 }
 
+// +SetOutputFormat(EnumOutputFormats of) error
+// SetOutputFormat sets the output format of the request.
 func (r *CLIRequest) SetOutputFormat(of formats.EnumOutputFormats) error {
 	return r.Params.OutputFormat.SetFormat(of)
 }
@@ -444,6 +447,8 @@ type Response struct {
 	Error          *RpcError       `json:"error,omitempty"`
 }
 
+// +Marshal() List~byte~
+// Marshalling response into JSON.
 func (r *Response) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
@@ -452,6 +457,8 @@ func (r *Response) Marshal() ([]byte, error) {
 	return b, nil
 }
 
+// +GetID() int
+// GetID returns ID of the response in order to compare with request ID.
 func (r *Response) GetID() int {
 	return r.ID
 }
