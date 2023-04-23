@@ -109,6 +109,16 @@ func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error
 	return c, nil
 }
 
+// GetSysVer returns the system version of the target after verification.
+func (c *JSONRPCClient) GetSysVer() string {
+	return c.sysVer
+}
+
+// GetHostname returns the hostname of the target after verification.
+func (c *JSONRPCClient) GetHostname() string {
+	return c.hostname
+}
+
 // Calls the JSON RPC server and returns the response.
 func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	body, err := r.Marshal()
