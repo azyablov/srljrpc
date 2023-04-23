@@ -13,7 +13,7 @@ This document try to explore available without sophisticated scenarios like serv
 
 ## API workflow
 
-As usual for the sake of demo, we will use [clab](#clab) as brilliant network simulation tool and one of the standard labs published by SRL Labs [EVPN interoperability between SR Linux and SROS](#evpn).
+As usual for the sake of demo, we will use [Containerlab][clab] as brilliant network simulation tool and one of the standard labs published by SRL Labs [EVPN interoperability between SR Linux and SROS][evpn].
 How to bring this is up and used very well described while you following provided links.
 Our simple program will grow up each and every steps allowing to to have necessary grip with the subject API.
 
@@ -418,7 +418,7 @@ c.CLI() example:
 +---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+
 ```
 
-All examples provided in this document can be found in [repository](#samples) with SR Linux JSON RPC library samples.
+All examples provided in this document can be found in [repository][samples] with SR Linux JSON RPC library samples.
 
 
 [clab]: https://containerlab.dev
