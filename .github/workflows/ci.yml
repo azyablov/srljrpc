@@ -17,7 +17,8 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: go version
-      - run: go mod tidy
       - run: docker -v
-  
+      - run: go mod tidy
+      - run: docker pull ghcr.io/nokia/srlinux:22.11.2
+
 
