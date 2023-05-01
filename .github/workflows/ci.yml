@@ -7,7 +7,8 @@ on:
   push:
     branches:
       - dev
-      
+env:
+  CLAB_VER: 0.40.0
 jobs:
   build_and_test:
     runs-on: ubuntu-22.04
@@ -23,9 +24,10 @@ jobs:
         run: docker -v
       - name: Add and remove go modules
         run: go mod tidy
-      - name: Pulling SR Linux image
-        run: docker pull ghcr.io/nokia/srlinux:22.11.2
+      # - name: Pulling SR Linux image
+      #   run: docker pull ghcr.io/nokia/srlinux:22.11.2
       - name: clab installation
-        run: whoami
+        run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
+
 
 
