@@ -26,16 +26,19 @@ jobs:
         run: docker -v
       - name: Add and remove go modules
         run: go mod tidy
-      # - name: Pulling SR Linux image
-      #   run: docker pull ghcr.io/nokia/srlinux:22.11.2
+      - name: Pulling SR Linux image
+        run: docker pull ghcr.io/nokia/srlinux:22.11.2
       - name: Unit tests
         run: go test -v
       - name: clab installation
         run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
-      - name: cd _clab and inspect
+      - name: clab deploy
         run: |
           cd _clab
+          sudo clab deploy
           sudo clab inspect
+          cd ..
+          
 
 
 
