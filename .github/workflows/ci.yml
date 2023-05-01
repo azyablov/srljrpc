@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 ---
-name: JSON RPC client CI workflow
+name: JSON RPC client CI DEV workflow
 run-name: CI DEV workflow
 on:
   push:
     branches:
       - dev
+
 env:
   CLAB_VER: 0.40.0
+
 jobs:
   build_and_test:
     runs-on: ubuntu-22.04
@@ -26,8 +28,11 @@ jobs:
         run: go mod tidy
       # - name: Pulling SR Linux image
       #   run: docker pull ghcr.io/nokia/srlinux:22.11.2
+      - name: Unit tests
+        run: go test -v
       - name: clab installation
         run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
+      
 
 
 
