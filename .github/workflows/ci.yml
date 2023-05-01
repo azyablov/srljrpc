@@ -32,7 +32,11 @@ jobs:
         run: go test -v
       - name: clab installation
         run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
-      
+      - name: cd _clab and inspect
+        run: |
+          cd _clab
+          clab inspect
+
 
 
 
