@@ -9,16 +9,23 @@ on:
       - dev
       
 jobs:
-  go_env:
+  build_and_test:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+      - name: Setup GO ENV
+        uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
-      - run: go version
-      - run: docker -v
-      - run: go mod tidy
-      - run: docker pull ghcr.io/nokia/srlinux:22.11.2
+      - name: GO version
+        run: go version
+      - name: docker version
+        run: docker -v
+      - name: Add and remove go modules
+        run: go mod tidy
+      - name: Pulling SR Linux image
+        run: docker pull ghcr.io/nokia/srlinux:22.11.2
+      - name: clab installation
+        run: whoami
 
 
