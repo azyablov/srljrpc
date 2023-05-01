@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+name: JSON RPC client CI workflow
+run-name: CI DEV workflow
+on:
+  push:
+    branches:
+      - dev
+      
+jobs:
+  go_env:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+      - run: go version
+      - run: go mod tidy
+  
+
