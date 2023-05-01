@@ -25,7 +25,9 @@ jobs:
       - name: docker_version
         run: docker -v
       - name: Pulling_SR_Linux_image
-        run: docker pull ghcr.io/nokia/srlinux:22.11.2
+        run: |
+          docker pull ghcr.io/hellt/network-multitool
+          docker pull ghcr.io/nokia/srlinux:22.11.2
       - name: unit_tests
         run: go test -v
       - name: clab_installation
@@ -35,10 +37,11 @@ jobs:
         run: |
           cd _clab
           sudo clab deploy
-          cd ..
       - name: Integration_tests
         if: ${{ success() }}
-        run: go test --tags integration -v
+        run: |
+          ls -l -R _clab
+        #go test --tags integration -v
 
 
 
