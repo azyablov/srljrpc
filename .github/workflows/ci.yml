@@ -35,7 +35,7 @@ jobs:
       - name: cd _clab and inspect
         run: |
           cd _clab
-          clab inspect
+          sudo clab inspect
 
 
 
