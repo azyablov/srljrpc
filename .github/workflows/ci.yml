@@ -16,29 +16,33 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - name: Setup GO ENV
+      - name: Setup_go_env
         uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
-      - name: GO version
+      - name: go_version
         run: go version
-      - name: docker version
+      - name: docker_version
         run: docker -v
-      - name: Add and remove go modules
-        run: go mod tidy
-      - name: Pulling SR Linux image
+      - name: Pulling_SR_Linux_image
         run: docker pull ghcr.io/nokia/srlinux:22.11.2
-      - name: Unit tests
+      - name: unit_tests
         run: go test -v
-      - name: clab installation
+      - name: clab_installation
         run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
-      - name: clab deploy
+      - name: clab_deploy
+        if: ${{ success() }}
         run: |
           cd _clab
           sudo clab deploy
-          sudo clab inspect
           cd ..
-          
+      - name: Integration_tests
+        if: ${{ success() }}
+        run: go test --tags integration -v
+
+
+
+
 
 
 
