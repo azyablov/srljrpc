@@ -24,11 +24,11 @@ jobs:
         run: go version
       - name: docker_version
         run: docker -v
-      - name: Pulling_SR_Linux_image
+      - name: Pulling_docker_images
         run: |
           docker pull ghcr.io/hellt/network-multitool
           docker pull ghcr.io/nokia/srlinux:22.11.2
-      - name: unit_tests
+      - name: Unit_tests
         run: go test -v
       - name: clab_installation
         run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
@@ -40,8 +40,8 @@ jobs:
       - name: Integration_tests
         if: ${{ success() }}
         run: |
-          ls -l -R _clab
-        #go test --tags integration -v
+          go test --tags integration -v
+        
 
 
 

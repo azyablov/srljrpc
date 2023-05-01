@@ -15,9 +15,9 @@
         "port": 443,
         "tls_attr": {
             "skip_verify": false,
-            "cert_file": "./_clab/clab-evpn/ca/spine1/spine1.pem",
-            "key_file": "./_clab/clab-evpn/ca/spine1/spine1-key.pem",
-            "ca_file": "./_clab/clab-evpn/ca/root/root-ca.pem"
+            "cert_file": "./_clab/clab-evpn/.tls/spine1/spine1.pem",
+            "key_file": "./_clab/clab-evpn/.tls/spine1/spine1.key",
+            "ca_file": "./_clab/clab-evpn/.tls/ca/ca.pem"
         }
     },
     "cert_target_incorrect_ca": {
@@ -27,8 +27,8 @@
         "port": 443,
         "tls_attr": {
             "skip_verify": false,
-            "cert_file": "./_clab/clab-evpn/ca/spine1/spine1.pem",
-            "key_file": "./_clab/clab-evpn/ca/spine1/spine1-key.pem",
+            "cert_file": "./_clab/clab-evpn/.tls/spine1/spine1.pem",
+            "key_file": "./_clab/clab-evpn/.tls/spine1/spine1.key",
             "ca_file": "./_clab/incorrect-root-ca.pem"
         }
     }
