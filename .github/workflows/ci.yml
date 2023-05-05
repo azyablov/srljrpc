@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+name: JSON RPC client CI DEV workflow
+run-name: CI DEV workflow
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  CLAB_VER: 0.40.0
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup_go_env
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+      - name: go_version
+        run: go version
+      - name: docker_version
+        run: docker -v
+      - name: Pulling_docker_images
+        run: |
+          docker pull ghcr.io/hellt/network-multitool
+          docker pull ghcr.io/nokia/srlinux:22.11.2
+      - name: Unit_tests
+        run: go test -v
+      - name: clab_installation
+        run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
+      - name: clab_deploy
+        if: ${{ success() }}
+        run: |
+          cd _clab
+          sudo clab deploy
+      - name: Integration_tests
+        if: ${{ success() }}
+        run: |
+          go test --tags integration -v
+        
+
+
+
+
+
+
+
+

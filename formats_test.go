@@ -1,3 +1,5 @@
+//go:build !integration
+
 package srljrpc_test
 
 import (

@@ -15,6 +15,6 @@
 # vendor/
 
 *.log
-clab/.nokia-evpn.clab.yml.bak
-clab/clab-evpn
+_clab/.nokia-evpn.clab.yml.bak
+_clab/clab-evpn
 
