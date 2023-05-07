@@ -20,23 +20,36 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version-file: 'go.mod'
+        
       - name: go_version
         run: go version
+
       - name: docker_version
         run: docker -v
+
+      - name: Static_check
+        run: go vet ./...
+      
+      - name: Unit_tests
+        if: ${{ success() }}
+        run: go test -v
+
       - name: Pulling_docker_images
+        if: ${{ success() }}
         run: |
           docker pull ghcr.io/hellt/network-multitool
           docker pull ghcr.io/nokia/srlinux:22.11.2
-      - name: Unit_tests
-        run: go test -v
+        
       - name: clab_installation
+        if: ${{ success() }}
         run: bash -c "$(curl -sL https://get.containerlab.dev)" -- -v $CLAB_VER
+
       - name: clab_deploy
         if: ${{ success() }}
         run: |
           cd _clab
           sudo clab deploy
+        
       - name: Integration_tests
         if: ${{ success() }}
         run: |
