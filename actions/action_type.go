@@ -4,49 +4,37 @@ import (
 	"fmt"
 )
 
+// EnumActions is an enumeration type of supported method actions.
 type EnumActions int
 
-//	class EnumActions {
-//		<<enumeration>>
-//		note "Replaces the entire configuration within a specific context with the supplied configuration; equivalent to a delete/update. When the action command is used with the tools datastore, update is the only supported option."
-//		REPLACE
-//		note "Updates a leaf or container with the specified value."
-//		UPDATE
-//		note "Deletes a leaf or container. All children beneath the parent are removed from the system."
-//		DELETE
-//	}
+//	Valid enumeration EnumActions:
+//		REPLACE - Replaces the entire configuration within a specific context with the supplied configuration; equivalent to a delete/update. When the action command is used with the tools datastore, update is the only supported option.
+//		UPDATE - Updates a leaf or container with the specified value.
+//		DELETE - Deletes a leaf or container. All children beneath the parent are removed from the system.
 //
-// EnumActions "1" --o Action: OneOf
 // Additional actions to required for the correct handling of the request:
 // INVALID_ACTION - at the time of object creation, the action is not set.
 // NONE - used for GET method, where the action must not be specified.
 const (
-	INVALID_ACTION             = iota
+	INVALID_ACTION EnumActions = iota
 	REPLACE        EnumActions = iota + 1
 	UPDATE
 	DELETE
 	NONE
 )
 
+// Error messages for the Action class.
 const (
 	GetErrMsg = "action isn't set properly, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
 	SetErrMsg = "action provided isn't correct, while should be REPLACE / UPDATE / DELETE or NONE for method GET"
 )
 
-// note for action "Conditional mandatory; used with the set and validate methods."
-//
-//	class Action {
-//		<<element>>
-//		~GetAction(): EnumActions
-//		~SetAction(a: EnumActions): error
-//		+string Action
-//	}
-//
-// Action class implementation.
+// Action use is conditional mandatory; used with the set and validate methods only.
 type Action struct {
 	Action string `json:"action,omitempty"`
 }
 
+// GetAction returns the action type and non nil error if the action is not set properly.
 func (a *Action) GetAction() (EnumActions, error) {
 	var ra EnumActions
 	switch a.Action {
@@ -64,6 +52,7 @@ func (a *Action) GetAction() (EnumActions, error) {
 	return ra, nil
 }
 
+// SetAction sets the action type and non nil error if provided action is not correct.
 func (a *Action) SetAction(ra EnumActions) error {
 	switch ra {
 	case DELETE:
