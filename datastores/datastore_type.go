@@ -4,19 +4,12 @@ import "fmt"
 
 type EnumDatastores int
 
-//	class EnumDatastores {
-//		<<enumeration>>
-//		note "Used to change the configuration of the system with the get, set, and validate methods; default datastore is used if the datastore parameter is not provided."
-//		CANDIDATE
-//		note "Used to retrieve the active configuration with the get method."
-//		RUNNING
-//		note "Used to retrieve the running (active) configuration along with the operational state."
-//		STATE
-//		note "Used to perform operational tasks on the system; only supported with the update action command and the set method."
-//		TOOLS
-//	}
+//	Valid enumeration EnumDatastores:
+//		CANDIDATE - Used to change the configuration of the system with the get, set, and validate methods; default datastore is used if the datastore parameter is not provided.
+//		RUNNING - Used to retrieve the active configuration with the get method.
+//		STATE - Used to retrieve the running (active) configuration along with the operational state.
+//		TOOLS - Used to perform operational tasks on the system; only supported with the update action command and the set method.
 //
-// EnumDatastores "1" --o Datastore: OneOf
 // By default we use CANDIDATE datastore, which is empty string OR "candidate" string in case specified explicitly.
 const (
 	CANDIDATE EnumDatastores = iota
@@ -25,25 +18,20 @@ const (
 	TOOLS
 )
 
+// Error messages for the Datastore class.
 const (
 	GetErrMsg = "datastore isn't set properly, while should be CANDIDATE / RUNNING / STATE / TOOLS"
 	SetErrMsg = "datastore provided isn't correct, while should be CANDIDATE / RUNNING / STATE / TOOLS"
 )
 
-// note for datastore "Optional; selects the datastore to perform the method against. CANDIDATE datastore is used if the datastore parameter is not provided."
-//
-//	class Datastore {
-//		<<element>>
-//		+GetDatastore(): EnumDatastores
-//		+SetDatastore(d: EnumDatastores): error
-//		+string Datastore
-//	}
-//
-// Datastore class implementation inherited directly by Command (for GET) and Params (for SET/VALIDATE and GET in case Datastore applied for all commands underneath).
+// Datastore class implementation inherited directly by Command (for GET only!)
+// and Params (for SET/VALIDATE and GET in case Datastore applied for all commands underneath).
+// Datastore is optional; selects the datastore to perform the method against. CANDIDATE datastore is used if the datastore parameter is not provided.
 type Datastore struct {
 	Datastore string `json:"datastore,omitempty"`
 }
 
+// GetDatastore returns the datastore type and non nil error if the datastore is not set properly.
 func (d *Datastore) GetDatastore() (EnumDatastores, error) {
 	var rd EnumDatastores
 	switch d.Datastore {
@@ -63,6 +51,7 @@ func (d *Datastore) GetDatastore() (EnumDatastores, error) {
 	return rd, nil
 }
 
+// SetDatastore sets the datastore type and non nil error if provided datastore is not correct.
 func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 	switch rd {
 	case CANDIDATE:
@@ -79,7 +68,7 @@ func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 	return nil
 }
 
-// Additional implementation helper method to get datastore name as string
+// Additional implementation helper method to get datastore name as string.
 func (d *Datastore) DatastoreName() string {
 	if d.Datastore == "" {
 		return "candidate"
