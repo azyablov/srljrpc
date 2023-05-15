@@ -2,16 +2,13 @@ package formats
 
 import "fmt"
 
-//	class EnumOutputFormats {
-//		<<enumeration>>
-//		JSON
-//		TEXT
-//		TABLE
-//	}
-//
-// EnumOutputFormats "1" --o OutputFormat: OneOf
+// EnumOutputFormats is an enumeration type of output formats.
 type EnumOutputFormats int
 
+// Valid enumeration EnumOutputFormats:
+// JSON - JSON format
+// TEXT - Text format
+// TABLE - Table format
 // By default we use JSON output format, which is empty string OR "json" string in case specified explicitly.
 const (
 	JSON EnumOutputFormats = iota
@@ -19,25 +16,19 @@ const (
 	TABLE
 )
 
+// Error messages for the OutputFormat class.
 const (
 	GetErrMsg = "output format isn't set properly, while should be JSON / XML / TABLE"
 	SetErrMsg = "output format provided isn't correct, while should be JSON / XML / TABLE"
 )
 
-// note for outputFormat "Optional. Defines the output format. Output defaults to JSON if not specified."
-//
-//	class OutputFormat {
-//		<<element>>
-//		+GetFormat() EnumOutputFormats
-//		+SetFormat(EnumOutputFormats of) error
-//		#string OutputFormat
-//	}
-//
+// OutputFormat is optional. Defines the output format. Output defaults to JSON if not specified.
 // OutputFormat class implementation inherited directly by Params.
 type OutputFormat struct {
 	OutputFormat string `json:"output-format,omitempty"`
 }
 
+// GetFormat returns the output format type and non nil error if the output format is not set properly.
 func (of *OutputFormat) GetFormat() (EnumOutputFormats, error) {
 	var rf EnumOutputFormats
 	switch of.OutputFormat {
@@ -55,6 +46,7 @@ func (of *OutputFormat) GetFormat() (EnumOutputFormats, error) {
 	return rf, nil
 }
 
+// SetFormat sets the output format type and non nil error if provided output format is not correct.
 func (of *OutputFormat) SetFormat(ofs EnumOutputFormats) error {
 	switch ofs {
 	case JSON:

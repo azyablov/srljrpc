@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/azyablov/srljrpc/actions"
 	"github.com/azyablov/srljrpc/methods"
 )
 
 func TestMethods(t *testing.T) {
 
-	// Verify default action is INVALID_ACTION
+	// Verify default method is INVALID_METHOD
 	m := methods.Method{}
 	rm, err := m.GetMethod()
 	if err == nil || rm != methods.INVALID_METHOD {
@@ -66,8 +65,8 @@ func TestMethods(t *testing.T) {
 			case err != nil && td.expErrGet != nil:
 				if err.Error() != td.expErrGet.Error() {
 					errStr := fmt.Sprintf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
-					if rm != actions.INVALID_ACTION {
-						errStr = fmt.Sprintf(errStr+"action expected %v, but got action %v", td.method, rm)
+					if rm != methods.INVALID_METHOD {
+						errStr = fmt.Sprintf(errStr+"method expected %v, but got action %v", td.method, rm)
 					}
 					t.Errorf(errStr)
 				}

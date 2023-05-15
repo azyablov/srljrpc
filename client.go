@@ -19,6 +19,7 @@ import (
 	"github.com/azyablov/srljrpc/methods"
 )
 
+// TLSAttr type to represent TLS attributes
 type TLSAttr struct {
 	CAFile     *string `json:"ca_file,omitempty"`     // CA certificate file in PEM format.
 	CertFile   *string `json:"cert_file,omitempty"`   // Client certificate file in PEM format.
@@ -37,16 +38,14 @@ type targetHost struct {
 	timeout time.Duration
 }
 
+// JSONRPCTarget type to represent a JSON RPC target: NE(target), TLS attributes, credentials.
 type JSONRPCTarget struct {
 	targetHost
 	cred
 	tlsConfig *tls.Config
 }
 
-//	class JSONRPCClient {
-//		<<entity>>
-//		Call(Requester r) Response
-//	}
+// JSONRPCClient type to represent a JSON RPC client: HTTP client, NE(target) and related info.
 type JSONRPCClient struct {
 	client   *http.Client
 	hostname string
@@ -54,18 +53,18 @@ type JSONRPCClient struct {
 	target   *JSONRPCTarget
 }
 
+// PV type to represent a path-value pair.
 type PV struct {
 	Path  string       `json:"path"`
 	Value CommandValue `json:"value"`
 }
 
+// ClientOption is a function type that applies options to a JSONRPCClient object.
 type ClientOption func(*JSONRPCClient) error
 
-// +NewJSONRPCClient(JSONRPCTarget t) JSONRPCClient
-// Creates a new JSON RPC client.
+// Creates a new JSON RPC client and applies options in order of appearance.
 func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error) {
-
-	// client
+	// client object
 	c := &JSONRPCClient{}
 	c.target = &JSONRPCTarget{}
 	// host
@@ -159,7 +158,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	return &rpcResp, nil
 }
 
-// Get method of JSONRPCClient. Executes a GET request against running datastore.
+// Get method of JSONRPCClient. Executes a GET request against RUNNING datastore.
 func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
 	opts := []CommandOptions{WithDatastore(datastores.RUNNING)}
 	var cmds []*Command
@@ -178,7 +177,7 @@ func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
 	return c.Do(r)
 }
 
-// Get state method of JSONRPCClient. Executes a GET request against running datastore.
+// Get state method of JSONRPCClient. Executes a GET request against STATE datastore.
 func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 	opts := []CommandOptions{WithDatastore(datastores.STATE)}
 	var cmds []*Command
@@ -197,7 +196,7 @@ func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 	return c.Do(r)
 }
 
-// SetUpdate method of JSONRPCClient. Executes a SET UPDATE action request against running datastore.
+// SetUpdate method of JSONRPCClient. Executes a SET/UPDATE action request against CANDIDATE datastore.
 func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
@@ -215,7 +214,7 @@ func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 	return c.Do(r)
 }
 
-// SetReplace method of JSONRPCClient. Executes a SET  REPLACE action request against running datastore.
+// SetReplace method of JSONRPCClient. Executes a SET/REPLACE action request against CANDIDATE datastore.
 func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
@@ -233,7 +232,7 @@ func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 	return c.Do(r)
 }
 
-// SetDelete method of JSONRPCClient. Executes a SET DELETE action request against running datastore.
+// SetDelete method of JSONRPCClient. Executes a SET/DELETE action request against CANDIDATE datastore.
 func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 	var cmds []*Command
 	for _, path := range paths {
@@ -251,7 +250,7 @@ func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 	return c.Do(r)
 }
 
-// Validate() method SET. Executes an specified action request against CANDIDATE datastore.
+// Validate() action of the method SET. Executes a SET/VALIDATE specified action request against CANDIDATE datastore.
 func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
@@ -269,7 +268,7 @@ func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Respon
 	return c.Do(r)
 }
 
-// Tools() method SET. Executes an UPDATE action request against TOOLS datastore.
+// Tools() action of the method SET. Executes a SET/UPDATE action request against TOOLS datastore.
 func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
@@ -286,6 +285,7 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 	return c.Do(r)
 }
 
+// Executes CLI commands against the target device (NE).
 func (c *JSONRPCClient) CLI(cmds []string, of formats.EnumOutputFormats) (*Response, error) {
 	r, err := NewCLIRequest(cmds, of)
 	if err != nil {
@@ -294,10 +294,11 @@ func (c *JSONRPCClient) CLI(cmds []string, of formats.EnumOutputFormats) (*Respo
 	return c.Do(r)
 }
 
+// Helper function to populate default values for the JSONRPCClient.
 func (c *JSONRPCClient) populateDefaults() error {
 	var (
 		defUsername = "admin"
-		defPass     = "admin"
+		defPass     = "NokiaSrl1!" // default password for SRL starting from 22.11. Should we provide "admin" permutation as well to check dynamically?
 		defPort     = 443
 		defTLS      = tls.Config{InsecureSkipVerify: true}
 	)
@@ -324,6 +325,7 @@ func (c *JSONRPCClient) populateDefaults() error {
 	return nil
 }
 
+// Internal function to verify the target device (NE) version and hostname, which could be used un the future to provide different behavior for different versions.
 func (c *JSONRPCClient) targetVerification() error {
 	// checking for the system version and hostname
 	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue(""), WithDatastore(datastores.STATE))
@@ -355,6 +357,7 @@ func (c *JSONRPCClient) targetVerification() error {
 	return nil
 }
 
+// ClientOption to update target port.
 func WithOptPort(port *int) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if port == nil {
@@ -365,6 +368,7 @@ func WithOptPort(port *int) ClientOption {
 	}
 }
 
+// ClientOption to set connection timeout.
 func WithOptTimeout(t time.Duration) ClientOption {
 	return func(c *JSONRPCClient) error {
 		c.target.timeout = t
@@ -372,6 +376,7 @@ func WithOptTimeout(t time.Duration) ClientOption {
 	}
 }
 
+// ClientOption to specify credentials.
 func WithOptCredentials(u, p *string) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if u == nil {
@@ -386,6 +391,9 @@ func WithOptCredentials(u, p *string) ClientOption {
 	}
 }
 
+// ClientOption to specify TLS configuration.
+// Setting the TLS configuration will override the default skipVerify option and will enforce the verification of the server certificate.
+// Assumes minimum TLS version 1.2.
 func WithOptTLS(t *TLSAttr) ClientOption {
 	return func(c *JSONRPCClient) error {
 		tlsConfig := tls.Config{}

@@ -13,21 +13,51 @@ import (
 	"github.com/azyablov/srljrpc/methods"
 )
 
-// note for Request "JSON RPC Request: get / set / validate"
-//
-//	class Request {
-//		<<message>>
-//		note "Mandatory. Version, which must be ‟2.0”. No other JSON RPC versions are currently supported."
-//		~string JSONRpcVersion
-//		note "Mandatory. Client-provided integer. The JSON RPC responds with the same ID, which allows the client to match requests to responses when there are concurrent requests."
-//		~int ID
-//		+Marshal() List~byte~
-//		+GetID() int
-//	}
-//
-// Request *-- Method
-// Request *-- Params
+// NewRequest provides a new Request with the given method, commands and options.
+// Sequence of functions is applied to the Request in the order of appearance.
+func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (*Request, error) {
+	r := &Request{}
+	// set version
+	r.JSONRpcVersion = "2.0"
+
+	// set method
+	r.Method = &methods.Method{}
+	err := r.Method.SetMethod(m)
+	if err != nil {
+		return nil, err
+	}
+
+	// set random ID
+	rand.Seed(time.Now().UnixNano())
+	id := rand.Int()
+	r.setID(id)
+
+	// set params and output format
+	r.Params = &Params{}
+	r.Params.OutputFormat = &formats.OutputFormat{}
+	r.Params.Datastore = &datastores.Datastore{}
+
+	// set commands
+	err = apply_cmds(r, cmds)
+	if err != nil {
+		return nil, err
+	}
+
+	// apply options to request
+	err = apply_opts(r, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 // JSON RPC Request for get / set / validate methods.
+//
+//	JSONRpcVersion is mandatory. Version, which must be ‟2.0”. No other JSON RPC versions are currently supported.
+//	ID is mandatory. Client-provided integer. The JSON RPC responds with the same ID, which allows the client to match requests to responses when there are concurrent requests.
+//	Implementation uses random numbers and verifies Response ID is the same as Request ID.
+//	Embeds Method and Params.
 type Request struct {
 	JSONRpcVersion string `json:"jsonrpc"`
 	ID             int    `json:"id"`
@@ -35,6 +65,7 @@ type Request struct {
 	Params *Params `json:"params"`
 }
 
+// Marshaling of the Request into JSON.
 func (r *Request) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
@@ -43,27 +74,21 @@ func (r *Request) Marshal() ([]byte, error) {
 	return b, nil
 }
 
+// Get Request ID.
 func (r *Request) GetID() int {
 	return r.ID
 }
 
+// Set Request ID.
 func (r *Request) setID(id int) {
 	r.ID = id
 }
 
+// Set output format for the request via embedded Params.
 func (r *Request) SetOutputFormat(of formats.EnumOutputFormats) error {
 	return r.Params.OutputFormat.SetFormat(of)
 }
 
-//	class Requester {
-//		<<interface>>
-//		+Marshal() List~byte~
-//		+GetID() int
-//		+GetMethod() EnumMethods
-//		+MethodName() string
-//		+SetOutputFormat(of formats.EnumOutputFormats) error
-//	}
-//
 // Requester is an interface used by the JSON RPC client to send a request to the server.
 type Requester interface {
 	Marshal() ([]byte, error)
@@ -73,24 +98,17 @@ type Requester interface {
 	SetOutputFormat(of formats.EnumOutputFormats) error
 }
 
-//	class RequestOption {
-//		<<function>>
-//		(Request c) error
-//	}
-//
-// RequestOption is a function type that applies options to a Request
-// Sequence of functions is applied to the Request in the order of the list.
+// RequestOption is a function type that applies options to a Request.
 type RequestOption func(*Request) error
 
-// +WithOutputFormat(EnumOutputFormats of) RequestOption
+// Defines output format RequestOption.
 func WithOutputFormat(of formats.EnumOutputFormats) RequestOption {
 	return func(r *Request) error {
 		return r.SetOutputFormat(of)
 	}
 }
 
-// +WithRequestDatastore(EnumDatastores ds) RequestOption
-// WithRequestDatastore is a RequestOption that sets the datastore for the request in Params level, which overrides the datastore in Command level.
+// RequestOption that sets the datastore for the request in Params level. Overrides the datastore in Command level!
 func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 	return func(r *Request) error {
 		m, _ := r.GetMethod()
@@ -131,45 +149,7 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 	}
 }
 
-// +NewRequest(EnumMethods m, List~GetCommand~ cmds, List~RequestOption~ opts) Request
-// NewRequest creates a new Request with the given method, commands and options.
-func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (*Request, error) {
-	r := &Request{}
-	// set version
-	r.JSONRpcVersion = "2.0"
-
-	// set method
-	r.Method = &methods.Method{}
-	err := r.Method.SetMethod(m)
-	if err != nil {
-		return nil, err
-	}
-
-	// set random ID
-	rand.Seed(time.Now().UnixNano())
-	id := rand.Int()
-	r.setID(id)
-
-	// set params and output format
-	r.Params = &Params{}
-	r.Params.OutputFormat = &formats.OutputFormat{}
-	r.Params.Datastore = &datastores.Datastore{}
-
-	// set commands
-	err = apply_cmds(r, cmds)
-	if err != nil {
-		return nil, err
-	}
-
-	// apply options to request
-	err = apply_opts(r, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
-}
-
+// Helper function to add commands to the request and verify if they are valid for the selected method i.e. implements JSON RPC API specification rules.
 func apply_cmds(r *Request, cmds []*Command) error {
 	// check if commands are empty
 	if len(cmds) == 0 {
@@ -305,7 +285,7 @@ func apply_cmds(r *Request, cmds []*Command) error {
 	return nil
 }
 
-// function applies options to the request
+// Helper function applies options to the request.
 func apply_opts(r *Request, opts []RequestOption) error {
 	for _, o := range opts {
 		if o != nil { // check that's not nil
@@ -317,58 +297,8 @@ func apply_opts(r *Request, opts []RequestOption) error {
 	return nil
 }
 
-//	class CLIRequest {
-//		<<message>>
-//		note "Method set to CLI"
-//		note "Mandatory. Version, which must be ‟2.0”. No other JSON RPC versions are currently supported."
-//		~string JSONRpcVersion
-//		note "Mandatory. Client-provided integer. The JSON RPC responds with the same ID, which allows the client to match requests to responses when there are concurrent requests."
-//		~int ID
-//		note "Mandatory. Supported options are cli. Set statically in the RPC request"
-//		+Marshal() List~byte~
-//		+GetID() int
-//		~setID(int)
-//	}
-//
-// CLIRequest *-- Method
-// CLIRequest *-- CLIParams
-type CLIRequest struct {
-	JSONRpcVersion string `json:"jsonrpc"`
-	ID             int    `json:"id"`
-	*methods.Method
-	Params *CLIParams `json:"params"`
-}
-
-// Marshalling CLIRequest into JSON.
-func (r *CLIRequest) Marshal() ([]byte, error) {
-	b, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
-// +GetID() int
-// GetID returns the ID of the request.
-func (r *CLIRequest) GetID() int {
-	return r.ID
-}
-
-// +setID(int id)
-// SetID sets the ID of the request. Internal method.
-func (r *CLIRequest) setID(id int) {
-	r.ID = id
-}
-
-// +SetOutputFormat(EnumOutputFormats of) error
-// SetOutputFormat sets the output format of the request.
-func (r *CLIRequest) SetOutputFormat(of formats.EnumOutputFormats) error {
-	return r.Params.OutputFormat.SetFormat(of)
-}
-
-// +NewCLIRequest(List~string~ cmds, EnumOutputFormats of) CLIRequest
-// NewCLIRequest creates a new CLIRequest object using the provided list of commands executed one by one and output format.
-// Each command should have a response under JSON RPC response message "result" field with respective command index.
+// Creates a new CLIRequest object using the provided list of commands executed one by one and output format.
+// Each command should have a response under JSON RPC response message - Response under "result" field with respective command index.
 func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, error) {
 	r := &CLIRequest{}
 	// set version
@@ -404,42 +334,61 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 	return r, nil
 }
 
-// note for RpcError "When a rpc call is made, the Server MUST reply with a Response, except for in the case of Notifications. The Response is expressed as a single JSON Object"
+//	JSONRpcVersion is mandatory. Version, which must be ‟2.0”. No other JSON RPC versions are currently supported.
 //
-//	class RpcError {
-//		<<element>>
-//		note "A Number that indicates the error type that occurred. This MUST be an integer."
-//		+int ID
-//		note "A String providing a short description of the error. The message SHOULD be limited to a concise single sentence."
-//		+string Message
-//		note "A Primitive or Structured value that contains additional information about the error. This may be omitted. The value of this member is defined by the Server (e.g. detailed error information, nested errors etc.)."
-//		+string Data
-//	}
+// ID is mandatory. Client-provided integer. The JSON RPC responds with the same ID, which allows the client to match requests to responses when there are concurrent requests.
+// Implementation uses random numbers and verifies Response ID is the same as Request ID.
+// Embeds Method (set to CLI by NewCLIRequest) and CLIParams.
+type CLIRequest struct {
+	JSONRpcVersion string `json:"jsonrpc"`
+	ID             int    `json:"id"`
+	*methods.Method
+	Params *CLIParams `json:"params"`
+}
+
+// Marshalling CLIRequest into JSON.
+func (r *CLIRequest) Marshal() ([]byte, error) {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+// Returns the ID of the request.
+func (r *CLIRequest) GetID() int {
+	return r.ID
+}
+
+// Sets the ID of the request. Internal method.
+func (r *CLIRequest) setID(id int) {
+	r.ID = id
+}
+
+// Sets the output format of the request.
+func (r *CLIRequest) SetOutputFormat(of formats.EnumOutputFormats) error {
+	return r.Params.OutputFormat.SetFormat(of)
+}
+
+// RpcError is generic JSON RPC error object.
+// When a rpc call is made, the Server MUST reply with a Response, except for in the case of Notifications. The Response is expressed as a single JSON Object.
 //
-// Generic JSON RPC error object.
+//	ID should be set to client provided ID.
+//	Message is a string providing a short description of the error. The message SHOULD be limited to a concise single sentence."
+//	Data is a primitive or structured value that contains additional information about the error. This may be omitted. The value of this member is defined by the Server (e.g. detailed error information, nested errors etc.).
 type RpcError struct {
 	ID      int    `json:"id"`
 	Message string `json:"message"`
 	Data    string `json:"data,omitempty"`
 }
 
-// note for Response "JSON RPC response message. When a rpc call is made, the Server MUST reply with a Response, except for in the case of Notifications. The Response is expressed as a single JSON Object."
-//
-//	class Response {
-//		<<message>>
-//		note "Mandatory. Version, which must be ‟2.0”. No other JSON RPC versions are currently supported."
-//		~string JSONRpcVersion
-//		note "Mandatory. Client-provided integer. The JSON RPC responds with the same ID, which allows the client to match requests to responses when there are concurrent requests."
-//		~int ID
-//		note "This member is REQUIRED on success. This member MUST NOT exist if there was an error invoking the method. The value of this member is determined by the method invoked on the Server."
-//		+jsonRawMessage Result
-//		note "This member is REQUIRED on error. This member MUST NOT exist if there was no error triggered during invocation. The value for this member MUST be an Object as defined in section 5.1."
-//		+RpcError Error
-//	}
-//
-// Response o-- RpcError
 // JSON RPC response message. When a rpc call is made, the Server MUST reply with a Response, except for in the case of Notifications. The Response is expressed as a single JSON Object.
 // Result and error are mutually exclusive, so only one of them can be expected. Error is represented as a pointer to RpcError, so it can be nil.
+//
+//	JSONRpcVersion is mandatory. Version, which must be ‟2.0”. No other JSON RPC versions are currently supported.
+//	ID is mandatory. Client-provided integer. The JSON RPC responds with the same ID, which allows the client to match requests to responses when there are concurrent requests.
+//	Result is REQUIRED on success (jsonRawMessage). This member MUST NOT exist if there was an error invoking the method. The value of this member is determined by the method invoked on the Server.
+//	Error is REQUIRED on error. This member MUST NOT exist if there was no error triggered during invocation. The value for this member MUST be an RpcError object.
 type Response struct {
 	JSONRpcVersion string          `json:"jsonrpc"`
 	ID             int             `json:"id"`
@@ -447,8 +396,7 @@ type Response struct {
 	Error          *RpcError       `json:"error,omitempty"`
 }
 
-// +Marshal() List~byte~
-// Marshalling response into JSON.
+// Marshalling Response into JSON.
 func (r *Response) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
@@ -457,8 +405,7 @@ func (r *Response) Marshal() ([]byte, error) {
 	return b, nil
 }
 
-// +GetID() int
-// GetID returns ID of the response in order to compare with request ID.
+// Returns ID of the response in order to compare with request ID.
 func (r *Response) GetID() int {
 	return r.ID
 }
