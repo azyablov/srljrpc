@@ -2,6 +2,7 @@ package datastores
 
 import "fmt"
 
+// EnumDatastores is an enumeration type of the datastore types.
 type EnumDatastores int
 
 //	Valid enumeration EnumDatastores:
