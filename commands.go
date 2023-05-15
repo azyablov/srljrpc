@@ -9,8 +9,10 @@ import (
 	"github.com/azyablov/srljrpc/formats"
 )
 
-// +NewCommand(EnumActions action, string path, string value, List~CommandOptions~ opts) Command
-// Constructor for Command object with mandatory action, path and value fields, and optional command options to influence command behaviour.
+// CommandOption type to represent a function that configures a Command.
+type CommandOptions func(*Command) error
+
+// Constructor for a new Command object with mandatory action, path and value fields, and optional command options to influence command behavior.
 func NewCommand(action actions.EnumActions, path string, value CommandValue, opts ...CommandOptions) (*Command, error) {
 	c := &Command{
 		Path:                 path,
@@ -38,8 +40,7 @@ func NewCommand(action actions.EnumActions, path string, value CommandValue, opt
 	return c, nil
 }
 
-// +WithoutRecursion() CommandOption
-// Disable recursion for the command.
+// Provides CommandOptions to disable recursion for the command.
 func WithoutRecursion() CommandOptions {
 	return func(c *Command) error {
 		c.withoutRecursion()
@@ -47,8 +48,7 @@ func WithoutRecursion() CommandOptions {
 	}
 }
 
-// +WithDefaults() CommandOption
-// Enable inclusion of default values in returned JSON RPC response for the command.
+// CommandOptions to enable inclusion of default values in returned JSON RPC response for the command.
 func WithDefaults() CommandOptions {
 	return func(c *Command) error {
 		c.withDefaults()
@@ -56,45 +56,23 @@ func WithDefaults() CommandOptions {
 	}
 }
 
-// +WithAddPathKeywords(jsonRawMessage kw) CommandOption
-// Add path keywords to the command to substitute named parameters with the path field.
+// CommandOptions to add path keywords to the command to substitute named parameters with the path field.
 func WithAddPathKeywords(kw json.RawMessage) CommandOptions {
 	return func(c *Command) error {
 		return c.withPathKeywords(kw)
 	}
 }
 
-// +WithDatastore(EnumDatastores d) CommandOption
-// Set datastore for the command.
+// CommandOptions to set datastore for the command.
 func WithDatastore(d datastores.EnumDatastores) CommandOptions {
 	return func(c *Command) error {
 		return c.withDatastore(d)
 	}
 }
 
-// note for Command "Mandatory. List of commands used to execute against the called method. Multiple commands can be executed with a single request."
-//
-//	class Command {
-//		<<element>>
-//		note "Mandatory with the get, set and validate methods. This value is a string that follows the gNMI path specification1 in human-readable format."
-//		~string Path
-//		note "Optional, since can be embedded into path, for such kind of cases value should not be specified, so path assumed to follow <path>:<value> schema, which will be checked for set and validate"
-//		~string Value
-//		note "Optional; used to substitute named parameters with the path field. More than one keyword can be used with each path."
-//		~string PathKeywords
-//		note "Optional; a Boolean used to retrieve children underneath the specific path. The default = true."
-//		~bool Recursive
-//		note "Optional; a Boolean used to show all fields, regardless if they have a directory configured or are operating at their default setting. The default = false."
-//		~bool Include-field-defaults
-//		+withoutRecursion()
-//		+withDefaults()
-//		+withPathKeywords(jsonRawMessage) error
-//		+withDatastore(EnumDatastores)
-//		+GetDatastore() string
-//	}
-//
-// Command *-- "1" Action
-// Command *-- "1" Datastore
+// Command is mandatory. List of commands used to execute against the called method. Multiple commands can be executed with a single request.
+// Number of CommandOptions could be used to influence command behavior.
+// Embeds Action and Datastore objects.
 type Command struct {
 	Path                 string          `json:"path"`
 	Value                string          `json:"value,omitempty"`
@@ -134,32 +112,11 @@ func (c *Command) withDatastore(ds datastores.EnumDatastores) error {
 	return c.Datastore.SetDatastore(ds)
 }
 
-//	class CommandOption {
-//		<<function>>
-//		(Command c) error
-//	}
-//
-// CommandOption type to represent a function that configures a Command.
-type CommandOptions func(*Command) error
-
-//	class CommandValue {
-//		<<element>>
-//		string
-//	}
-//
 // CommandValue type to represent a value of a command.
 type CommandValue string
 
-// note for params "MAY be omitted. Defines a container for any parameters related to the request. The type of parameter is dependent on the method used."
-//
-//	class Params {
-//		<<element>>
-//		~List~Command~ commands
-//		+appendCommands(List~Command~)
-//	}
-//
-// Params *-- OutputFormat
-// Params class implementation.
+// Params defines a container for Commands and optional OutputFormat and Datastore objects.
+// Params embeds OutputFormat and Datastore objects.
 type Params struct {
 	Commands []Command `json:"commands"`
 	*formats.OutputFormat
@@ -177,25 +134,13 @@ func (p *Params) appendCommands(commands []*Command) error {
 	return nil
 }
 
-// To be reconsidered but looks as redundant for now.
-// func (p *Params) getCmds() *[]Command {
-// 	return &p.Commands
-// }
-
 // Set datastore for the params. Internal method.
 func (p *Params) withDatastore(ds datastores.EnumDatastores) error {
 	p.Datastore = &datastores.Datastore{}
 	return p.Datastore.SetDatastore(ds)
 }
 
-//	class CLIParams {
-//		<<element>>
-//		~List~string~ commands
-//		+appendCommands(List~string~)
-//	}
-//
-// CLIParams *-- OutputFormat
-// CLIParams class implementation.
+// CLIParams defines a container for CLI commands and optional OutputFormat object.
 type CLIParams struct {
 	Commands []string `json:"commands"`
 	*formats.OutputFormat
@@ -211,8 +156,3 @@ func (p *CLIParams) appendCommands(commands []string) error {
 	p.Commands = append(p.Commands, commands...)
 	return nil
 }
-
-// To be reconsidered but looks as redundant for now.
-// func (p *CLIParams) getCmds() *[]string {
-// 	return &p.Commands
-// }
