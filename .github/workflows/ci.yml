@@ -38,7 +38,7 @@ jobs:
         if: ${{ success() }}
         run: |
           docker pull ghcr.io/hellt/network-multitool
-          docker pull ghcr.io/nokia/srlinux:22.11.2
+          docker pull ghcr.io/nokia/srlinux:23.3.1
         
       - name: clab_installation
         if: ${{ success() }}
