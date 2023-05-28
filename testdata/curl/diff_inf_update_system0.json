@@ -1,0 +1,16 @@
+{
+    "jsonrpc":"2.0",
+    "id": 6143224386846316514,
+    "method": "diff",
+    "params": {
+            "commands": [
+                {
+                    "path":"/interface[name=system0]/description:UPDATED",
+                    "action":"update"
+                    }
+            ],
+            "output-format": "json",
+            "yang-models": "srl",
+            "datastore": "candidate"
+        }
+}

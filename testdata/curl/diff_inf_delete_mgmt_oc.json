@@ -1,0 +1,16 @@
+{
+    "jsonrpc":"2.0",
+    "id": 6143224386846316514,
+    "method": "diff",
+    "params": {
+            "commands": [
+                {
+                    "path":"/interfaces/interface[name=mgmt0]/subinterfaces/subinterface[index=0]",
+                    "action":"delete"
+                    }
+            ],
+            "output-format": "json",
+            "yang-models": "oc",
+            "datastore": "candidate"
+        }
+}

@@ -1,0 +1,16 @@
+{
+    "jsonrpc":"2.0",
+    "id": 6143224386846316514,
+    "method": "diff",
+    "params": {
+            "commands": [
+                {
+                    "path":"/interface[name=ethernet-1/1]/subinterface[index=1]/description:MAC-VRF 1 + REPLACED",
+                    "action":"replace"
+                    }
+            ],
+            "output-format": "json",
+            "yang-models": "srl",
+            "datastore": "candidate"
+        }
+}

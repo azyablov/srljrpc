@@ -1,0 +1,16 @@
+{
+    "jsonrpc": "2.0",
+    "id": 123,
+    "method": "set",
+    "params": {
+        "commands": [
+            {
+                "path": "/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer",
+                "value": "",
+                "action": "update"
+            }
+        ],
+        "yang-models": "srl",
+        "datastore": "tools"
+    }
+}
