@@ -24,60 +24,59 @@ func TestMethods(t *testing.T) {
 		method    methods.EnumMethods
 		expErrSet error
 		expErrGet error
-		errMsg    string
 	}{
-		{testName: "Setting method to CLI", method: methods.CLI, expErrSet: nil, expErrGet: nil, errMsg: "method CLI isn't set properly: "},
-		{testName: "Setting method to GET", method: methods.GET, expErrSet: nil, expErrGet: nil, errMsg: "method GET isn't set properly: "},
-		{testName: "Setting method to SET", method: methods.SET, expErrSet: nil, expErrGet: nil, errMsg: "method SET isn't set properly: "},
-		{testName: "Setting method to VALIDATE", method: methods.VALIDATE, expErrSet: nil, expErrGet: nil, errMsg: "method VALIDATE isn't set properly: "},
-		{testName: "Setting method to INVALID_METHOD", method: methods.INVALID_METHOD, expErrSet: fmt.Errorf(methods.SetErrMsg), expErrGet: fmt.Errorf(methods.GetErrMsg), errMsg: "method INVALID_METHOD was handled incorrectly: "},
-		{testName: "Setting method to 100", method: methods.EnumMethods(100), expErrSet: fmt.Errorf(methods.SetErrMsg), expErrGet: fmt.Errorf(methods.GetErrMsg), errMsg: "fake method 100 was handled incorrectly: "},
+		{testName: "Setting method to CLI", method: methods.CLI, expErrSet: nil, expErrGet: nil},
+		{testName: "Setting method to GET", method: methods.GET, expErrSet: nil, expErrGet: nil},
+		{testName: "Setting method to SET", method: methods.SET, expErrSet: nil, expErrGet: nil},
+		{testName: "Setting method to VALIDATE", method: methods.VALIDATE, expErrSet: nil, expErrGet: nil},
+		{testName: "Setting method to DIFF", method: methods.DIFF, expErrSet: nil, expErrGet: nil},
+		{testName: "Setting method to INVALID_METHOD", method: methods.INVALID_METHOD, expErrSet: fmt.Errorf(methods.SetErrMsg), expErrGet: fmt.Errorf(methods.GetErrMsg)},
+		{testName: "Setting method to 100", method: methods.EnumMethods(100), expErrSet: fmt.Errorf(methods.SetErrMsg), expErrGet: fmt.Errorf(methods.GetErrMsg)},
 	}
 	for _, td := range testData {
 		t.Run(td.testName, func(t *testing.T) {
 			m := methods.Method{}
-			err := m.SetMethod(td.method)
+			errSetMtd := m.SetMethod(td.method)
 			switch {
-			case err == nil && td.expErrSet == nil:
-			case err != nil && td.expErrSet != nil:
-				if err.Error() != td.expErrSet.Error() {
-					t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
+			case errSetMtd == nil && td.expErrSet == nil:
+			case errSetMtd != nil && td.expErrSet != nil:
+				if errSetMtd.Error() != td.expErrSet.Error() {
+					t.Errorf("got: %s, while should be: %s", errSetMtd, td.expErrSet)
 				}
-			case err == nil && td.expErrSet != nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
-			case err != nil && td.expErrSet == nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
+			case errSetMtd == nil && td.expErrSet != nil:
+				t.Errorf("got: %s, while should be: %s", errSetMtd, td.expErrSet)
+			case errSetMtd != nil && td.expErrSet == nil:
+				t.Errorf("got: %s, while should be: %s", errSetMtd, td.expErrSet)
 			default:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
+				t.Errorf("got: %s, while should be: %s", errSetMtd, td.expErrSet)
 			}
 
-			rm, err := m.GetMethod()
+			rm, errGetMtd := m.GetMethod()
 			switch {
-			case err == nil && td.expErrGet == nil:
-				// while SetMethod must failing, GetMethod must not get the same result
+			case errGetMtd == nil && td.expErrGet == nil:
+				// While SetMethod must failing, GetMethod must not get the same result
 				if rm == td.method && td.expErrSet != nil {
-					t.Errorf(td.errMsg+"got %v, while should be %v", rm, td.method)
+					t.Errorf("got: %v, while should be: %v", rm, td.method)
 				}
-				// if SetMethod is ok, then GetMethod must return the same result
+				// If SetMethod is ok, then GetMethod must return the same result
 				if rm != td.method && td.expErrSet == nil {
-					t.Errorf(td.errMsg+"got %v, while should be %v", rm, td.method)
+					t.Errorf("got: %v, while should be: %v", rm, td.method)
 				}
-			case err != nil && td.expErrGet != nil:
-				if err.Error() != td.expErrGet.Error() {
-					errStr := fmt.Sprintf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
+			case errGetMtd != nil && td.expErrGet != nil:
+				if errGetMtd.Error() != td.expErrGet.Error() {
+					errStr := fmt.Sprintf("got: %s, while should be: %s", errGetMtd, td.expErrGet)
 					if rm != methods.INVALID_METHOD {
-						errStr = fmt.Sprintf(errStr+"method expected %v, but got action %v", td.method, rm)
+						errStr = fmt.Sprintf("method expected %v, but got action %v", td.method, rm)
 					}
 					t.Errorf(errStr)
 				}
-			case err == nil && td.expErrGet != nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
-			case err != nil && td.expErrGet == nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
+			case errGetMtd == nil && td.expErrGet != nil:
+				t.Errorf("got: %v, while should be: %v", errGetMtd, td.expErrGet)
+			case errGetMtd != nil && td.expErrGet == nil:
+				t.Errorf("got: %s, while should be: %v", errGetMtd, td.expErrGet)
 			default:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
+				t.Errorf("got: %s, while should be: %s", errGetMtd, td.expErrGet)
 			}
 		})
 	}
-
 }
