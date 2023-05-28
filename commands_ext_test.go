@@ -15,7 +15,7 @@ import (
 func TestNewCommand(t *testing.T) {
 	// checking for the system version and hostname
 	strOpts := []string{"", "WithoutRecursion", "WithDefaults", "WithAddPathKeywords", "WithDatastore"}
-	cOpts := []srljrpc.CommandOptions{nil, srljrpc.WithoutRecursion(), srljrpc.WithDefaults(), srljrpc.WithAddPathKeywords(json.RawMessage(`{"name": "mgmt0"}`)), srljrpc.WithDatastore(datastores.CANDIDATE)}
+	cOpts := []srljrpc.CommandOption{nil, srljrpc.WithoutRecursion(), srljrpc.WithDefaults(), srljrpc.WithAddPathKeywords(json.RawMessage(`{"name": "mgmt0"}`)), srljrpc.WithDatastore(datastores.CANDIDATE)}
 	expectedJSON := [][]string{
 		{`{"path":"/system/name/host-name"}`, `{"path":"/system/name/host-name","value":"test delete","action":"delete"}`,
 			`{"path":"/system/name/host-name","value":"test update","action":"update"}`,
@@ -40,7 +40,7 @@ func TestNewCommand(t *testing.T) {
 			testName string
 			action   actions.EnumActions
 			value    srljrpc.CommandValue
-			opts     []srljrpc.CommandOptions
+			opts     []srljrpc.CommandOption
 			errExp   error
 			expJSON  string
 		}{
@@ -54,13 +54,13 @@ func TestNewCommand(t *testing.T) {
 			t.Run(td.testName, func(t *testing.T) {
 				cmd, err := srljrpc.NewCommand(td.action, "/system/name/host-name", td.value, td.opts...)
 				if err != nil {
-					t.Fatal(err)
+					t.Errorf("creation error: %s", err)
 				}
 				b, err := json.Marshal(cmd)
 				if err != nil {
-					t.Fatal(err)
+					t.Errorf("marshalling error: %s", err)
 				}
-				t.Log(string(b))
+				// t.Log(string(b))
 				cmp.Diff(string(b), td.expJSON)
 				if out := cmp.Diff(string(b), td.expJSON); out != "" {
 					t.Fatalf("\nexpected: %s, \ngot: %s", string(td.expJSON), string(b))
