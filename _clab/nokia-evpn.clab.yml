@@ -9,15 +9,15 @@ topology:
 
   nodes:
 
-    spine1:
-      kind: srl
-      type: ixrd3
-      startup-config: ./configs/spine1_v23.3.1.cfg
+    # spine1:
+    #   kind: srl
+    #   type: ixrd3
+    #   startup-config: ./configs/spine1_v23.3.1.cfg
 
-    spine2:
-      kind: srl
-      type: ixrd3
-      startup-config: ./configs/spine2_v23.3.1.cfg
+    # spine2:
+    #   kind: srl
+    #   type: ixrd3
+    #   startup-config: ./configs/spine2_v23.3.1.cfg
 
     spine3:
       kind: srl
@@ -84,15 +84,15 @@ topology:
 
   links:
 
-    - endpoints: ["spine1:e1-11", "leaf1:e1-51"]
-    - endpoints: ["spine1:e1-12", "leaf2:e1-51"]
-    - endpoints: ["spine1:e1-13", "leaf3:e1-51"]
-    - endpoints: ["spine1:e1-14", "leaf4:e1-51"]
+    # - endpoints: ["spine1:e1-11", "leaf1:e1-51"]
+    # - endpoints: ["spine1:e1-12", "leaf2:e1-51"]
+    # - endpoints: ["spine1:e1-13", "leaf3:e1-51"]
+    # - endpoints: ["spine1:e1-14", "leaf4:e1-51"]
 
-    - endpoints: ["spine2:e1-11", "leaf1:e1-52"]
-    - endpoints: ["spine2:e1-12", "leaf2:e1-52"]
-    - endpoints: ["spine2:e1-13", "leaf3:e1-52"]
-    - endpoints: ["spine2:e1-14", "leaf4:e1-52"]
+    # - endpoints: ["spine2:e1-11", "leaf1:e1-52"]
+    # - endpoints: ["spine2:e1-12", "leaf2:e1-52"]
+    # - endpoints: ["spine2:e1-13", "leaf3:e1-52"]
+    # - endpoints: ["spine2:e1-14", "leaf4:e1-52"]
 
     - endpoints: ["leaf1:e1-1", "client1:eth1"]
     - endpoints: ["leaf2:e1-1", "client1:eth2"]
