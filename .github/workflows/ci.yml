@@ -9,7 +9,7 @@ on:
       - dev
 
 env:
-  CLAB_VER: 0.40.0
+  CLAB_VER: 0.41.2
 
 jobs:
   build_and_test:
