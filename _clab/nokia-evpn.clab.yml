@@ -3,7 +3,7 @@ name: evpn
 topology:
   kinds:
     srl:
-      image: ghcr.io/nokia/srlinux:22.11.2
+      image: ghcr.io/nokia/srlinux:23.3.1
     linux:
       image: ghcr.io/hellt/network-multitool
 
@@ -12,32 +12,43 @@ topology:
     spine1:
       kind: srl
       type: ixrd3
-      startup-config: ./configs/spine1.cfg
+      startup-config: ./configs/spine1_v23.3.1.cfg
 
     spine2:
       kind: srl
       type: ixrd3
-      startup-config: ./configs/spine2.cfg
+      startup-config: ./configs/spine2_v23.3.1.cfg
 
+    spine3:
+      kind: srl
+      type: ixr6e
+      startup-config: ./configs/spine3_v23.3.1.cfg
+    
+    spine4:
+      kind: srl
+      type: ixr6e
+      startup-config: ./configs/spine4_v23.3.1.cfg
+
+    
     leaf1:
       kind: srl
       type: ixrd2
-      startup-config: ./configs/leaf1.cfg
+      startup-config: ./configs/leaf1_v23.3.1.cfg
 
     leaf2:
       kind: srl
       type: ixrd2
-      startup-config: ./configs/leaf2.cfg
+      startup-config: ./configs/leaf2_v23.3.1.cfg
 
     leaf3:
       kind: srl
       type: ixrd2
-      startup-config: ./configs/leaf3.cfg
+      startup-config: ./configs/leaf3_v23.3.1.cfg
 
     leaf4:
       kind: srl
       type: ixrd2
-      startup-config: ./configs/leaf4.cfg
+      startup-config: ./configs/leaf4_v23.3.1.cfg
 
     client1:
       kind: linux
@@ -71,3 +82,13 @@ topology:
     - endpoints: ["leaf2:e1-1", "client1:eth2"]
     - endpoints: ["leaf3:e1-1", "client2:eth1"]
     - endpoints: ["leaf4:e1-1", "client2:eth2"]
+
+    - endpoints: ["spine3:e1-11", "leaf1:e1-49"]
+    - endpoints: ["spine3:e1-12", "leaf2:e1-49"]
+    - endpoints: ["spine3:e1-13", "leaf3:e1-49"]
+    - endpoints: ["spine3:e1-14", "leaf4:e1-49"]
+    
+    - endpoints: ["spine4:e1-11", "leaf1:e1-50"]
+    - endpoints: ["spine4:e1-12", "leaf2:e1-50"]
+    - endpoints: ["spine4:e1-13", "leaf3:e1-50"]
+    - endpoints: ["spine4:e1-14", "leaf4:e1-50"]
