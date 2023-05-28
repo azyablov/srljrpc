@@ -103,7 +103,6 @@ func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error
 	// verify target validity and availability
 	err = c.targetVerification()
 	if err != nil {
-		// return nil, fmt.Errorf("target verification failed: %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "NewJSONRPCClient",
 			Message:     "target verification failed",
@@ -138,7 +137,6 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 
 	reqHTTP, err := http.NewRequest("POST", fmt.Sprintf("https://%s:%v/jsonrpc", *c.target.host, *c.target.port), bytes.NewBuffer(body))
 	if err != nil {
-		//return nil, fmt.Errorf("do() http request creation: %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
 			Message:     "http request creation error",
@@ -152,7 +150,6 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 
 	resp, err := c.client.Do(reqHTTP)
 	if err != nil {
-		//return nil, fmt.Errorf("do() sending:  %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
 			Message:     "sending error",
@@ -162,7 +159,6 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		//return nil, fmt.Errorf("do() http status: %s", resp.Status)
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
 			Message:     "http status error",
@@ -172,7 +168,6 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	rpcResp := Response{}
 	err = json.NewDecoder(resp.Body).Decode(&rpcResp)
 	if err != nil {
-		//return nil, fmt.Errorf("do() decoding error: %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
 			Message:     "decoding error",
@@ -180,7 +175,6 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 		}
 	}
 	if rpcResp.GetID() != r.GetID() {
-		//return nil, fmt.Errorf("do() request and response IDs do not match: %v", rpcResp.ID)
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
 			Message:     "request and response IDs do not match",
@@ -189,7 +183,6 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	}
 
 	if rpcResp.Error != nil {
-		//return nil, fmt.Errorf("do() JSON-RPC error: %v", rpcResp.Error)
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
 			Message:     "JSON-RPC error",
@@ -207,7 +200,6 @@ func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
 		if err != nil {
-			//return nil, fmt.Errorf("get(): %w", err)
 			return nil, apierr.ClientError{
 				CltFunction: "Get",
 				Message:     "command creation error",
@@ -220,7 +212,6 @@ func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
 	// create the request
 	r, err := NewRequest(methods.GET, cmds)
 	if err != nil {
-		//return nil, fmt.Errorf("get(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Get",
 			Message:     "request creation error",
@@ -237,7 +228,6 @@ func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
 		if err != nil {
-			// return nil, fmt.Errorf("state(): %w", err)
 			return nil, apierr.ClientError{
 				CltFunction: "State",
 				Message:     "command creation error",
@@ -248,7 +238,6 @@ func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 	}
 	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
-		//return nil, fmt.Errorf("state(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "State",
 			Message:     "request creation error",
@@ -264,7 +253,6 @@ func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
 		if err != nil {
-			//return nil, fmt.Errorf("update(): %w", err)
 			return nil, apierr.ClientError{
 				CltFunction: "Update",
 				Message:     "command creation error",
@@ -276,7 +264,6 @@ func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 	}
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		// return nil, fmt.Errorf("update(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Update",
 			Message:     "request creation error",
@@ -292,7 +279,6 @@ func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.REPLACE, pv.Path, pv.Value)
 		if err != nil {
-			//return nil, fmt.Errorf("replace(): %w", err)
 			return nil, apierr.ClientError{
 				CltFunction: "Replace",
 				Message:     "command creation error",
@@ -304,7 +290,6 @@ func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 	}
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		//return nil, fmt.Errorf("replace(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Replace",
 			Message:     "request creation error",
@@ -321,7 +306,6 @@ func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.DELETE, path, CommandValue(""))
 		if err != nil {
-			//return nil, fmt.Errorf("delete(): %w", err)
 			return nil, apierr.ClientError{
 				CltFunction: "Delete",
 				Message:     "command creation error",
@@ -335,7 +319,6 @@ func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 	// build the request
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		//return nil, fmt.Errorf("delete(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Delete",
 			Message:     "request creation error",
@@ -358,14 +341,12 @@ func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmT
 	case actions.UPDATE:
 		update = pv
 	case actions.NONE:
-		//return nil, fmt.Errorf("diff(): action cannot be NONE")
 		return nil, apierr.ClientError{
 			CltFunction: "DiffCandidate",
 			Message:     "action cannot be NONE",
 			Err:         nil,
 		}
 	default:
-		//return nil, fmt.Errorf("diff(): unsupported action specified: %v", action)
 		return nil, apierr.ClientError{
 			CltFunction: "DiffCandidate",
 			Message:     "unsupported action specified",
@@ -374,7 +355,6 @@ func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmT
 	}
 	r, err := NewDiffRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
 	if err != nil {
-		//return nil, fmt.Errorf("diff(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "DiffCandidate",
 			Message:     "request creation error",
@@ -390,7 +370,6 @@ func (c *JSONRPCClient) BulkSetCandidate(delete []PV, replace []PV, update []PV,
 	// build the request
 	r, err := NewSetRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
 	if err != nil {
-		//return nil, fmt.Errorf("bulkSetCandidate(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "BulkSetCandidate",
 			Message:     "request creation error",
@@ -406,7 +385,6 @@ func (c *JSONRPCClient) BulkDiffCandidate(delete []PV, replace []PV, update []PV
 	// build the request
 	r, err := NewDiffRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
 	if err != nil {
-		//return nil, fmt.Errorf("bulkDiffCandidate(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "BulkDiffCandidate",
 			Message:     "request creation error",
@@ -422,7 +400,6 @@ func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Respon
 	for _, pv := range pvs {
 		cmd, err := NewCommand(action, pv.Path, pv.Value)
 		if err != nil {
-			//return nil, fmt.Errorf("validate(): %w", err)
 			return nil, apierr.ClientError{
 				CltFunction: "Validate",
 				Message:     "request creation error",
@@ -434,7 +411,6 @@ func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Respon
 
 	r, err := NewRequest(methods.VALIDATE, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		//return nil, fmt.Errorf("validate(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Validate",
 			Message:     "request creation error",
@@ -461,7 +437,6 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 	}
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.TOOLS))
 	if err != nil {
-		//return nil, fmt.Errorf("tools(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "Tools",
 			Message:     "request creation error",
@@ -475,7 +450,6 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 func (c *JSONRPCClient) CLI(cmds []string, of formats.EnumOutputFormats) (*Response, error) {
 	r, err := NewCLIRequest(cmds, of)
 	if err != nil {
-		//return nil, fmt.Errorf("cli(): %w", err)
 		return nil, apierr.ClientError{
 			CltFunction: "CLI",
 			Message:     "request creation error",
@@ -521,7 +495,6 @@ func (c *JSONRPCClient) targetVerification() error {
 	// checking for the system version and hostname
 	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
-		//return fmt.Errorf("target verification: %w", err)
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
 			Message:     "command creation error",
@@ -530,7 +503,6 @@ func (c *JSONRPCClient) targetVerification() error {
 	}
 	sysVerCmd, err := NewCommand(actions.NONE, "/system/information/version", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
-		//return fmt.Errorf("target verification: %w", err)
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
 			Message:     "command creation error",
@@ -540,7 +512,6 @@ func (c *JSONRPCClient) targetVerification() error {
 	cmds := []*Command{hostnameCmd, sysVerCmd}
 	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
-		//return fmt.Errorf("target verification: %w", err)
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
 			Message:     "request creation error",
@@ -555,7 +526,6 @@ func (c *JSONRPCClient) targetVerification() error {
 
 	var hostAndVer []string
 	if err = json.Unmarshal(rpcResp.Result, &hostAndVer); err != nil {
-		//return fmt.Errorf("target verification: %w", err)
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
 			Message:     "unmarshal error",
@@ -572,7 +542,6 @@ func (c *JSONRPCClient) targetVerification() error {
 func WithOptPort(port *int) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if port == nil {
-			//return fmt.Errorf("port could not be nil")
 			return apierr.ClientError{
 				CltFunction: "WithOptPort",
 				Message:     "port could not be nil",
@@ -596,7 +565,6 @@ func WithOptTimeout(t time.Duration) ClientOption {
 func WithOptCredentials(u, p *string) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if u == nil {
-			//return fmt.Errorf("username could not be nil")
 			return apierr.ClientError{
 				CltFunction: "WithOptCredentials",
 				Message:     "username could not be nil",
@@ -605,7 +573,6 @@ func WithOptCredentials(u, p *string) ClientOption {
 		}
 		c.target.username = u
 		if p == nil {
-			//return fmt.Errorf("password could not be nil")
 			return apierr.ClientError{
 				CltFunction: "WithOptCredentials",
 				Message:     "password could not be nil",
@@ -628,7 +595,6 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 		if !*t.SkipVerify {
 			tlsConfig.ServerName = *c.target.host
 			if len(*t.CAFile) == 0 || (!(len(*t.CertFile) == 0) && len(*t.KeyFile) == 0) || (len(*t.CertFile) == 0 && !(len(*t.KeyFile) == 0)) {
-				//return fmt.Errorf("WithOptTLS() one of more files for rootCA / certificate / key are not specified")
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
 					Message:     "one of more files for rootCA / certificate / key are not specified",
@@ -639,7 +605,6 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			// Populating root CA certificates pool
 			fh, err := os.Open(*t.CAFile)
 			if err != nil {
-				//return fmt.Errorf("WithOptTLS() populating root CA certificates pool: %w", err)
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
 					Message:     "can't open root CA file",
@@ -648,7 +613,6 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			}
 			bs, err := ioutil.ReadAll(fh)
 			if err != nil {
-				//return fmt.Errorf("WithOptTLS() reading root CA cert: %w", err)
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
 					Message:     "can't read root CA file",
@@ -658,7 +622,6 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 
 			certCAPool := x509.NewCertPool()
 			if !certCAPool.AppendCertsFromPEM(bs) {
-				//return fmt.Errorf("WithOptTLS() can't load PEM file for rootCA")
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
 					Message:     "can't load PEM file for rootCA",
@@ -670,7 +633,6 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			// Loading certificate
 			certTLS, err := tls.LoadX509KeyPair(*t.CertFile, *t.KeyFile)
 			if err != nil {
-				//return fmt.Errorf("WithOptTLS() can't load certificate keypair: %w", err)
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
 					Message:     "can't load certificate keypair",
@@ -681,7 +643,6 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			// using x509.ParseCertificate to reduce per-handshake processing.
 			certTLS.Leaf, err = x509.ParseCertificate(certTLS.Certificate[0])
 			if err != nil {
-				//return fmt.Errorf("WithOptTLS() cert parsing error: %w", err)
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
 					Message:     "cert parsing error",
