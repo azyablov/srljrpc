@@ -8,15 +8,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/azyablov/srljrpc/actions"
+	"github.com/azyablov/srljrpc/apierr"
 	"github.com/azyablov/srljrpc/datastores"
 	"github.com/azyablov/srljrpc/formats"
 	"github.com/azyablov/srljrpc/methods"
+	"github.com/azyablov/srljrpc/yms"
 )
 
 // TLSAttr type to represent TLS attributes
@@ -102,7 +103,12 @@ func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error
 	// verify target validity and availability
 	err = c.targetVerification()
 	if err != nil {
-		return nil, fmt.Errorf("target verification failed: %v", err)
+		// return nil, fmt.Errorf("target verification failed: %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "NewJSONRPCClient",
+			Message:     "target verification failed",
+			Err:         err,
+		}
 	}
 
 	return c, nil
@@ -122,11 +128,22 @@ func (c *JSONRPCClient) GetHostname() string {
 func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	body, err := r.Marshal()
 	if err != nil {
-		return nil, err
+		//return nil, err
+		return nil, apierr.ClientError{
+			CltFunction: "Do",
+			Message:     "marshalling error",
+			Err:         err,
+		}
 	}
+
 	reqHTTP, err := http.NewRequest("POST", fmt.Sprintf("https://%s:%v/jsonrpc", *c.target.host, *c.target.port), bytes.NewBuffer(body))
 	if err != nil {
-		return nil, fmt.Errorf("http request creation: %s", err)
+		//return nil, fmt.Errorf("do() http request creation: %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Do",
+			Message:     "http request creation error",
+			Err:         err,
+		}
 	}
 
 	// setting content type and authentication header
@@ -135,24 +152,49 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 
 	resp, err := c.client.Do(reqHTTP)
 	if err != nil {
-		log.Fatal(err)
+		//return nil, fmt.Errorf("do() sending:  %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Do",
+			Message:     "sending error",
+			Err:         err,
+		}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http status: %s", resp.Status)
+		//return nil, fmt.Errorf("do() http status: %s", resp.Status)
+		return nil, apierr.ClientError{
+			CltFunction: "Do",
+			Message:     "http status error",
+			Err:         err,
+		}
 	}
 	rpcResp := Response{}
 	err = json.NewDecoder(resp.Body).Decode(&rpcResp)
 	if err != nil {
-		return nil, fmt.Errorf("decoding error: %s", err)
+		//return nil, fmt.Errorf("do() decoding error: %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Do",
+			Message:     "decoding error",
+			Err:         err,
+		}
 	}
 	if rpcResp.GetID() != r.GetID() {
-		return nil, fmt.Errorf("request and response IDs do not match: %v", rpcResp.ID)
+		//return nil, fmt.Errorf("do() request and response IDs do not match: %v", rpcResp.ID)
+		return nil, apierr.ClientError{
+			CltFunction: "Do",
+			Message:     "request and response IDs do not match",
+			Err:         err,
+		}
 	}
 
 	if rpcResp.Error != nil {
-		return nil, fmt.Errorf("JSON-RPC error: %+v", rpcResp.Error)
+		//return nil, fmt.Errorf("do() JSON-RPC error: %v", rpcResp.Error)
+		return nil, apierr.ClientError{
+			CltFunction: "Do",
+			Message:     "JSON-RPC error",
+			Err:         err,
+		}
 	}
 
 	return &rpcResp, nil
@@ -160,127 +202,271 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 
 // Get method of JSONRPCClient. Executes a GET request against RUNNING datastore.
 func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
-	opts := []CommandOptions{WithDatastore(datastores.RUNNING)}
+	opts := []CommandOption{WithDatastore(datastores.RUNNING)}
 	var cmds []*Command
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
 		if err != nil {
-			return nil, err
+			//return nil, fmt.Errorf("get(): %w", err)
+			return nil, apierr.ClientError{
+				CltFunction: "Get",
+				Message:     "command creation error",
+				Err:         err,
+			}
 		}
 		cmds = append(cmds, cmd)
 
 	}
-	r, err := NewRequest(methods.GET, cmds, nil)
+	// create the request
+	r, err := NewRequest(methods.GET, cmds)
 	if err != nil {
-		return nil, err
+		//return nil, fmt.Errorf("get(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Get",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
 
 // Get state method of JSONRPCClient. Executes a GET request against STATE datastore.
 func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
-	opts := []CommandOptions{WithDatastore(datastores.STATE)}
+	opts := []CommandOption{WithDatastore(datastores.STATE)}
 	var cmds []*Command
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
-
 		if err != nil {
-			return nil, err
+			// return nil, fmt.Errorf("state(): %w", err)
+			return nil, apierr.ClientError{
+				CltFunction: "State",
+				Message:     "command creation error",
+				Err:         err,
+			}
 		}
 		cmds = append(cmds, cmd)
 	}
 	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
-		return nil, err
+		//return nil, fmt.Errorf("state(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "State",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
 
-// SetUpdate method of JSONRPCClient. Executes a SET/UPDATE action request against CANDIDATE datastore.
+// SetUpdate method of JSONRPCClient. Executes a SET/UPDATE action request against CANDIDATE datastore. Yang model type is default(SRL).
 func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
 		if err != nil {
-			return nil, err
+			//return nil, fmt.Errorf("update(): %w", err)
+			return nil, apierr.ClientError{
+				CltFunction: "Update",
+				Message:     "command creation error",
+				Err:         err,
+			}
 		}
 
 		cmds = append(cmds, cmd)
 	}
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		return nil, err
+		// return nil, fmt.Errorf("update(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Update",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
 
-// SetReplace method of JSONRPCClient. Executes a SET/REPLACE action request against CANDIDATE datastore.
+// SetReplace method of JSONRPCClient. Executes a SET/REPLACE action request against CANDIDATE datastore. Yang model type is default(SRL).
 func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.REPLACE, pv.Path, pv.Value)
 		if err != nil {
-			return nil, err
+			//return nil, fmt.Errorf("replace(): %w", err)
+			return nil, apierr.ClientError{
+				CltFunction: "Replace",
+				Message:     "command creation error",
+				Err:         err,
+			}
 		}
 
 		cmds = append(cmds, cmd)
 	}
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		return nil, err
+		//return nil, fmt.Errorf("replace(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Replace",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
 
-// SetDelete method of JSONRPCClient. Executes a SET/DELETE action request against CANDIDATE datastore.
+// SetDelete method of JSONRPCClient. Executes a SET/DELETE action request against CANDIDATE datastore. Yang model type is default(SRL).
 func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
+	// build the commands
 	var cmds []*Command
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.DELETE, path, CommandValue(""))
 		if err != nil {
-			return nil, err
+			//return nil, fmt.Errorf("delete(): %w", err)
+			return nil, apierr.ClientError{
+				CltFunction: "Delete",
+				Message:     "command creation error",
+				Err:         err,
+			}
 		}
 
 		cmds = append(cmds, cmd)
 	}
+
+	// build the request
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		return nil, err
+		//return nil, fmt.Errorf("delete(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Delete",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
 
-// Validate() action of the method SET. Executes a SET/VALIDATE specified action request against CANDIDATE datastore.
+// DiffCandidate method of JSONRPCClient. Executes a DIFF/<action> action request against CANDIDATE datastore. Yang model type is default(SRL).
+// The action parameter must be one of DELETE, REPLACE, or UPDATE.
+func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmType, pv ...PV) (*Response, error) {
+	var delete, replace, update []PV
+	// identify the action
+	switch action {
+	case actions.DELETE:
+		delete = pv
+	case actions.REPLACE:
+		replace = pv
+	case actions.UPDATE:
+		update = pv
+	case actions.NONE:
+		//return nil, fmt.Errorf("diff(): action cannot be NONE")
+		return nil, apierr.ClientError{
+			CltFunction: "DiffCandidate",
+			Message:     "action cannot be NONE",
+			Err:         nil,
+		}
+	default:
+		//return nil, fmt.Errorf("diff(): unsupported action specified: %v", action)
+		return nil, apierr.ClientError{
+			CltFunction: "DiffCandidate",
+			Message:     "unsupported action specified",
+			Err:         nil,
+		}
+	}
+	r, err := NewDiffRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
+	if err != nil {
+		//return nil, fmt.Errorf("diff(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "DiffCandidate",
+			Message:     "request creation error",
+			Err:         err,
+		}
+	}
+	return c.Do(r)
+}
+
+// Bulk CRUD method of JSONRPCClient. Executes a SET method with REPLACE/UPDATE/DELETE action request against CANDIDATE datastore.
+// yang model type is mandatory for diff to specify: SRL or OC.
+func (c *JSONRPCClient) BulkSetCandidate(delete []PV, replace []PV, update []PV, ym yms.EnumYmType) (*Response, error) {
+	// build the request
+	r, err := NewSetRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
+	if err != nil {
+		//return nil, fmt.Errorf("bulkSetCandidate(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "BulkSetCandidate",
+			Message:     "request creation error",
+			Err:         err,
+		}
+	}
+	return c.Do(r)
+}
+
+// Bulk CRUD method of JSONRPCClient. Executes a DIFF method with REPLACE/UPDATE/DELETE action request against CANDIDATE datastore.
+// yang model type is mandatory for diff to specify: SRL or OC.
+func (c *JSONRPCClient) BulkDiffCandidate(delete []PV, replace []PV, update []PV, ym yms.EnumYmType) (*Response, error) {
+	// build the request
+	r, err := NewDiffRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
+	if err != nil {
+		//return nil, fmt.Errorf("bulkDiffCandidate(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "BulkDiffCandidate",
+			Message:     "request creation error",
+			Err:         err,
+		}
+	}
+	return c.Do(r)
+}
+
+// Validate() action of the method SET. Executes a SET/VALIDATE specified action request against CANDIDATE datastore. Yang model type is default(SRL).
 func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
 		cmd, err := NewCommand(action, pv.Path, pv.Value)
 		if err != nil {
-			return nil, err
+			//return nil, fmt.Errorf("validate(): %w", err)
+			return nil, apierr.ClientError{
+				CltFunction: "Validate",
+				Message:     "request creation error",
+				Err:         err,
+			}
 		}
 		cmds = append(cmds, cmd)
 	}
 
 	r, err := NewRequest(methods.VALIDATE, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		return nil, err
+		//return nil, fmt.Errorf("validate(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Validate",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
 
-// Tools() action of the method SET. Executes a SET/UPDATE action request against TOOLS datastore.
+// Tools() action of the method SET. Executes a SET/UPDATE action request against TOOLS datastore. Yang model type is default(SRL).
 func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
 		if err != nil {
-			return nil, err
+			//return nil, fmt.Errorf("tools(): %w", err)
+			return nil, apierr.ClientError{
+				CltFunction: "Tools",
+				Message:     "request creation error",
+				Err:         err,
+			}
 		}
 		cmds = append(cmds, cmd)
 	}
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.TOOLS))
 	if err != nil {
-		return nil, err
+		//return nil, fmt.Errorf("tools(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "Tools",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
@@ -289,7 +475,12 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 func (c *JSONRPCClient) CLI(cmds []string, of formats.EnumOutputFormats) (*Response, error) {
 	r, err := NewCLIRequest(cmds, of)
 	if err != nil {
-		return nil, err
+		//return nil, fmt.Errorf("cli(): %w", err)
+		return nil, apierr.ClientError{
+			CltFunction: "CLI",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 	return c.Do(r)
 }
@@ -330,26 +521,46 @@ func (c *JSONRPCClient) targetVerification() error {
 	// checking for the system version and hostname
 	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
-		return err
+		//return fmt.Errorf("target verification: %w", err)
+		return apierr.ClientError{
+			CltFunction: "targetVerification",
+			Message:     "command creation error",
+			Err:         err,
+		}
 	}
 	sysVerCmd, err := NewCommand(actions.NONE, "/system/information/version", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
-		return err
+		//return fmt.Errorf("target verification: %w", err)
+		return apierr.ClientError{
+			CltFunction: "targetVerification",
+			Message:     "command creation error",
+			Err:         err,
+		}
 	}
 	cmds := []*Command{hostnameCmd, sysVerCmd}
 	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
-		return err
+		//return fmt.Errorf("target verification: %w", err)
+		return apierr.ClientError{
+			CltFunction: "targetVerification",
+			Message:     "request creation error",
+			Err:         err,
+		}
 	}
 
 	rpcResp, err := c.Do(r)
 	if err != nil {
-		return fmt.Errorf("target verification: %s", err)
+		return err
 	}
 
 	var hostAndVer []string
 	if err = json.Unmarshal(rpcResp.Result, &hostAndVer); err != nil {
-		return err
+		//return fmt.Errorf("target verification: %w", err)
+		return apierr.ClientError{
+			CltFunction: "targetVerification",
+			Message:     "unmarshal error",
+			Err:         err,
+		}
 	}
 	c.hostname = hostAndVer[0]
 	c.sysVer = hostAndVer[1]
@@ -361,7 +572,12 @@ func (c *JSONRPCClient) targetVerification() error {
 func WithOptPort(port *int) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if port == nil {
-			return fmt.Errorf("port could not be nil")
+			//return fmt.Errorf("port could not be nil")
+			return apierr.ClientError{
+				CltFunction: "WithOptPort",
+				Message:     "port could not be nil",
+				Err:         nil,
+			}
 		}
 		c.target.port = port
 		return nil
@@ -380,11 +596,21 @@ func WithOptTimeout(t time.Duration) ClientOption {
 func WithOptCredentials(u, p *string) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if u == nil {
-			return fmt.Errorf("username could not be nil")
+			//return fmt.Errorf("username could not be nil")
+			return apierr.ClientError{
+				CltFunction: "WithOptCredentials",
+				Message:     "username could not be nil",
+				Err:         nil,
+			}
 		}
 		c.target.username = u
 		if p == nil {
-			return fmt.Errorf("password could not be nil")
+			//return fmt.Errorf("password could not be nil")
+			return apierr.ClientError{
+				CltFunction: "WithOptCredentials",
+				Message:     "password could not be nil",
+				Err:         nil,
+			}
 		}
 		c.target.password = p
 		return nil
@@ -402,35 +628,65 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 		if !*t.SkipVerify {
 			tlsConfig.ServerName = *c.target.host
 			if len(*t.CAFile) == 0 || (!(len(*t.CertFile) == 0) && len(*t.KeyFile) == 0) || (len(*t.CertFile) == 0 && !(len(*t.KeyFile) == 0)) {
-				return fmt.Errorf("one of more files for rootCA / certificate / key are not specified")
+				//return fmt.Errorf("WithOptTLS() one of more files for rootCA / certificate / key are not specified")
+				return apierr.ClientError{
+					CltFunction: "WithOptTLS",
+					Message:     "one of more files for rootCA / certificate / key are not specified",
+					Err:         nil,
+				}
 			}
 
 			// Populating root CA certificates pool
 			fh, err := os.Open(*t.CAFile)
 			if err != nil {
-				return fmt.Errorf("populating root CA certificates pool: %s", err)
+				//return fmt.Errorf("WithOptTLS() populating root CA certificates pool: %w", err)
+				return apierr.ClientError{
+					CltFunction: "WithOptTLS",
+					Message:     "can't open root CA file",
+					Err:         nil,
+				}
 			}
 			bs, err := ioutil.ReadAll(fh)
 			if err != nil {
-				return fmt.Errorf("reading root CA cert: %s", err)
+				//return fmt.Errorf("WithOptTLS() reading root CA cert: %w", err)
+				return apierr.ClientError{
+					CltFunction: "WithOptTLS",
+					Message:     "can't read root CA file",
+					Err:         nil,
+				}
 			}
 
 			certCAPool := x509.NewCertPool()
 			if !certCAPool.AppendCertsFromPEM(bs) {
-				return fmt.Errorf("can't load PEM file for rootCAt")
+				//return fmt.Errorf("WithOptTLS() can't load PEM file for rootCA")
+				return apierr.ClientError{
+					CltFunction: "WithOptTLS",
+					Message:     "can't load PEM file for rootCA",
+					Err:         nil,
+				}
 			}
 			tlsConfig.RootCAs = certCAPool
 
 			// Loading certificate
 			certTLS, err := tls.LoadX509KeyPair(*t.CertFile, *t.KeyFile)
 			if err != nil {
-				return fmt.Errorf("can't load certificate keypair: %s", err)
+				//return fmt.Errorf("WithOptTLS() can't load certificate keypair: %w", err)
+				return apierr.ClientError{
+					CltFunction: "WithOptTLS",
+					Message:     "can't load certificate keypair",
+					Err:         err,
+				}
 			}
 			// Leaf is the parsed form of the leaf certificate, which may be initialized
 			// using x509.ParseCertificate to reduce per-handshake processing.
 			certTLS.Leaf, err = x509.ParseCertificate(certTLS.Certificate[0])
 			if err != nil {
-				return fmt.Errorf("cert parsing error: %s", err)
+				//return fmt.Errorf("WithOptTLS() cert parsing error: %w", err)
+				return apierr.ClientError{
+					CltFunction: "WithOptTLS",
+					Message:     "cert parsing error",
+					Err:         err,
+				}
 			}
 			tlsConfig.Certificates = []tls.Certificate{certTLS}
 
