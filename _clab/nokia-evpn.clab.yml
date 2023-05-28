@@ -9,25 +9,25 @@ topology:
 
   nodes:
 
-    # spine1:
-    #   kind: srl
-    #   type: ixrd3
-    #   startup-config: ./configs/spine1_v23.3.1.cfg
-
-    # spine2:
-    #   kind: srl
-    #   type: ixrd3
-    #   startup-config: ./configs/spine2_v23.3.1.cfg
-
-    spine3:
+    spine1:
       kind: srl
-      type: ixr6e
-      startup-config: ./configs/spine3_v23.3.1.cfg
+      type: ixrd3
+      startup-config: ./configs/spine1_v23.3.1.cfg
+
+    spine2:
+      kind: srl
+      type: ixrd3
+      startup-config: ./configs/spine2_v23.3.1.cfg
+
+    # spine3:
+    #   kind: srl
+    #   type: ixr6e
+    #   startup-config: ./configs/spine3_v23.3.1.cfg
     
-    spine4:
-      kind: srl
-      type: ixr6e
-      startup-config: ./configs/spine4_v23.3.1.cfg
+    # spine4:
+    #   kind: srl
+    #   type: ixr6e
+    #   startup-config: ./configs/spine4_v23.3.1.cfg
 
     
     leaf1:
@@ -84,27 +84,27 @@ topology:
 
   links:
 
-    # - endpoints: ["spine1:e1-11", "leaf1:e1-51"]
-    # - endpoints: ["spine1:e1-12", "leaf2:e1-51"]
-    # - endpoints: ["spine1:e1-13", "leaf3:e1-51"]
-    # - endpoints: ["spine1:e1-14", "leaf4:e1-51"]
+    - endpoints: ["spine1:e1-11", "leaf1:e1-51"]
+    - endpoints: ["spine1:e1-12", "leaf2:e1-51"]
+    - endpoints: ["spine1:e1-13", "leaf3:e1-51"]
+    - endpoints: ["spine1:e1-14", "leaf4:e1-51"]
 
-    # - endpoints: ["spine2:e1-11", "leaf1:e1-52"]
-    # - endpoints: ["spine2:e1-12", "leaf2:e1-52"]
-    # - endpoints: ["spine2:e1-13", "leaf3:e1-52"]
-    # - endpoints: ["spine2:e1-14", "leaf4:e1-52"]
+    - endpoints: ["spine2:e1-11", "leaf1:e1-52"]
+    - endpoints: ["spine2:e1-12", "leaf2:e1-52"]
+    - endpoints: ["spine2:e1-13", "leaf3:e1-52"]
+    - endpoints: ["spine2:e1-14", "leaf4:e1-52"]
 
     - endpoints: ["leaf1:e1-1", "client1:eth1"]
     - endpoints: ["leaf2:e1-1", "client1:eth2"]
     - endpoints: ["leaf3:e1-1", "client2:eth1"]
     - endpoints: ["leaf4:e1-1", "client2:eth2"]
 
-    - endpoints: ["spine3:e1-11", "leaf1:e1-49"]
-    - endpoints: ["spine3:e1-12", "leaf2:e1-49"]
-    - endpoints: ["spine3:e1-13", "leaf3:e1-49"]
-    - endpoints: ["spine3:e1-14", "leaf4:e1-49"]
+    # - endpoints: ["spine3:e1-11", "leaf1:e1-49"]
+    # - endpoints: ["spine3:e1-12", "leaf2:e1-49"]
+    # - endpoints: ["spine3:e1-13", "leaf3:e1-49"]
+    # - endpoints: ["spine3:e1-14", "leaf4:e1-49"]
     
-    - endpoints: ["spine4:e1-11", "leaf1:e1-50"]
-    - endpoints: ["spine4:e1-12", "leaf2:e1-50"]
-    - endpoints: ["spine4:e1-13", "leaf3:e1-50"]
-    - endpoints: ["spine4:e1-14", "leaf4:e1-50"]
+    # - endpoints: ["spine4:e1-11", "leaf1:e1-50"]
+    # - endpoints: ["spine4:e1-12", "leaf2:e1-50"]
+    # - endpoints: ["spine4:e1-13", "leaf3:e1-50"]
+    # - endpoints: ["spine4:e1-14", "leaf4:e1-50"]
