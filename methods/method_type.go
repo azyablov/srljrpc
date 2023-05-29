@@ -10,14 +10,16 @@ type EnumMethods int
 //		SET - Used to set a configuration or run operational transaction. The set method can be used with the candidate and tools datastores.
 //		CLI - Used to run CLI commands. The get and set methods are restricted to accessing data structures via the YANG models, but the cli method can access any commands added to the system via python plug-ins or aliases.
 //		VALIDATE - Used to verify that the system accepts a configuration transaction before applying it to the system.
+//		DIFF - Used to retrieve the difference between the set and candidate / tools configurations.
 //
 // At the time of object creation method is not set, so we use INVALID_METHOD as default value in order to force user to set it properly.
 const (
-	INVALID_METHOD EnumMethods = iota
-	GET                        // note "Used to retrieve configuration and state details from the system. The get method can be used with candidate, running, and state datastores, but cannot be used with the tools datastore."
-	SET                        // note "Used to set a configuration or run operational transaction. The set method can be used with the candidate and tools datastores."
-	CLI                        // note "Used to run CLI commands. The get and set methods are restricted to accessing data structures via the YANG models, but the cli method can access any commands added to the system via python plug-ins or aliases."
-	VALIDATE                   // note "Used to verify that the system accepts a configuration transaction before applying it to the system."
+	INVALID_METHOD EnumMethods = iota // Default value, used to force user to set method properly.
+	GET                               // Used to retrieve configuration and state details from the system. The get method can be used with candidate, running, and state datastores, but cannot be used with the tools datastore.
+	SET                               // Used to set a configuration or run operational transaction. The set method can be used with the candidate and tools datastores.
+	CLI                               // Used to run CLI commands. The get and set methods are restricted to accessing data structures via the YANG models, but the cli method can access any commands added to the system via python plug-ins or aliases.
+	VALIDATE                          // Used to verify that the system accepts a configuration transaction before applying it to the system.
+	DIFF                              // Used to retrieve the difference between the set and candidate / tools configurations.
 )
 
 // Error messages for the Method class.
@@ -43,6 +45,8 @@ func (m *Method) GetMethod() (EnumMethods, error) {
 		rm = CLI
 	case "validate":
 		rm = VALIDATE
+	case "diff":
+		rm = DIFF
 	default:
 		return rm, fmt.Errorf(GetErrMsg)
 	}
@@ -60,6 +64,8 @@ func (m *Method) SetMethod(rm EnumMethods) error {
 		m.Method = "cli"
 	case VALIDATE:
 		m.Method = "validate"
+	case DIFF:
+		m.Method = "diff"
 	default:
 		return fmt.Errorf(SetErrMsg)
 	}

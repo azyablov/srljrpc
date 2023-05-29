@@ -7,13 +7,14 @@ import (
 	"github.com/azyablov/srljrpc/actions"
 	"github.com/azyablov/srljrpc/datastores"
 	"github.com/azyablov/srljrpc/formats"
+	"github.com/azyablov/srljrpc/yms"
 )
 
 // CommandOption type to represent a function that configures a Command.
-type CommandOptions func(*Command) error
+type CommandOption func(*Command) error
 
 // Constructor for a new Command object with mandatory action, path and value fields, and optional command options to influence command behavior.
-func NewCommand(action actions.EnumActions, path string, value CommandValue, opts ...CommandOptions) (*Command, error) {
+func NewCommand(action actions.EnumActions, path string, value CommandValue, opts ...CommandOption) (*Command, error) {
 	c := &Command{
 		Path:                 path,
 		Value:                string(value),
@@ -41,7 +42,7 @@ func NewCommand(action actions.EnumActions, path string, value CommandValue, opt
 }
 
 // Provides CommandOptions to disable recursion for the command.
-func WithoutRecursion() CommandOptions {
+func WithoutRecursion() CommandOption {
 	return func(c *Command) error {
 		c.withoutRecursion()
 		return nil
@@ -49,7 +50,7 @@ func WithoutRecursion() CommandOptions {
 }
 
 // CommandOptions to enable inclusion of default values in returned JSON RPC response for the command.
-func WithDefaults() CommandOptions {
+func WithDefaults() CommandOption {
 	return func(c *Command) error {
 		c.withDefaults()
 		return nil
@@ -57,14 +58,14 @@ func WithDefaults() CommandOptions {
 }
 
 // CommandOptions to add path keywords to the command to substitute named parameters with the path field.
-func WithAddPathKeywords(kw json.RawMessage) CommandOptions {
+func WithAddPathKeywords(kw json.RawMessage) CommandOption {
 	return func(c *Command) error {
 		return c.withPathKeywords(kw)
 	}
 }
 
 // CommandOptions to set datastore for the command.
-func WithDatastore(d datastores.EnumDatastores) CommandOptions {
+func WithDatastore(d datastores.EnumDatastores) CommandOption {
 	return func(c *Command) error {
 		return c.withDatastore(d)
 	}
@@ -121,6 +122,7 @@ type Params struct {
 	Commands []Command `json:"commands"`
 	*formats.OutputFormat
 	*datastores.Datastore
+	*yms.YmType
 }
 
 // Append commands to the params. Internal method.
@@ -138,6 +140,12 @@ func (p *Params) appendCommands(commands []*Command) error {
 func (p *Params) withDatastore(ds datastores.EnumDatastores) error {
 	p.Datastore = &datastores.Datastore{}
 	return p.Datastore.SetDatastore(ds)
+}
+
+// Set YANG module types for the params. Internal method.
+func (p *Params) withYmType(ym yms.EnumYmType) error {
+	p.YmType = &yms.YmType{}
+	return p.SetYmType(ym)
 }
 
 // CLIParams defines a container for CLI commands and optional OutputFormat object.

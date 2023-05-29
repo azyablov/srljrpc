@@ -23,55 +23,54 @@ func TestDatastores(t *testing.T) {
 		datastore datastores.EnumDatastores
 		expErrSet error
 		expErrGet error
-		errMsg    string
 	}{
-		{testName: "Setting datastore to CANDIDATE", datastore: datastores.CANDIDATE, expErrSet: nil, expErrGet: nil, errMsg: "datastore CANDIDATE isn't set properly: "},
-		{testName: "Setting datastore to RUNNING", datastore: datastores.RUNNING, expErrSet: nil, expErrGet: nil, errMsg: "datastore RUNNING isn't set properly: "},
-		{testName: "Setting datastore to STATE", datastore: datastores.STATE, expErrSet: nil, expErrGet: nil, errMsg: "datastore STATE isn't set properly: "},
-		{testName: "Setting datastore to TOOLS", datastore: datastores.TOOLS, expErrSet: nil, expErrGet: nil, errMsg: "datastore TOOLS isn't set properly: "},
-		{testName: "Setting datastore to non existent datastore 100", datastore: datastores.EnumDatastores(100), expErrSet: fmt.Errorf(datastores.SetErrMsg),
-			expErrGet: nil, errMsg: "fake datastore 100 was handled incorrectly: "},
+		{testName: "Setting datastore to CANDIDATE", datastore: datastores.CANDIDATE, expErrSet: nil, expErrGet: nil}, // should succeed
+		{testName: "Setting datastore to RUNNING", datastore: datastores.RUNNING, expErrSet: nil, expErrGet: nil},     // should succeed
+		{testName: "Setting datastore to STATE", datastore: datastores.STATE, expErrSet: nil, expErrGet: nil},         // should succeed
+		{testName: "Setting datastore to TOOLS", datastore: datastores.TOOLS, expErrSet: nil, expErrGet: nil},         // should succeed
+		{testName: "Setting datastore to non existent datastore 100", datastore: datastores.EnumDatastores(100), expErrSet: fmt.Errorf(datastores.SetErrMsg), // should fail, unsupported datastore
+			expErrGet: nil},
 	}
 
 	for _, td := range testData {
 		t.Run(td.testName, func(t *testing.T) {
 			d := datastores.Datastore{}
-			err := d.SetDatastore(td.datastore)
+			errSetDs := d.SetDatastore(td.datastore)
 			switch {
-			case err == nil && td.expErrSet == nil:
-			case err != nil && td.expErrSet != nil:
-				if err.Error() != td.expErrSet.Error() {
-					t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
+			case errSetDs == nil && td.expErrSet == nil:
+			case errSetDs != nil && td.expErrSet != nil:
+				if errSetDs.Error() != td.expErrSet.Error() {
+					t.Errorf("got: %s, while should be: %s", errSetDs, td.expErrSet)
 				}
-			case err == nil && td.expErrSet != nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
-			case err != nil && td.expErrSet == nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
+			case errSetDs == nil && td.expErrSet != nil:
+				t.Errorf("got: %v, while should be: %s", errSetDs, td.expErrSet)
+			case errSetDs != nil && td.expErrSet == nil:
+				t.Errorf("got: %s, while should be: %v", errSetDs, td.expErrSet)
 			default:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrSet)
+				t.Errorf("got %s, while should be %s", errSetDs, td.expErrSet)
 			}
 
-			rd, err := d.GetDatastore()
+			rd, errGetDs := d.GetDatastore()
 			switch {
-			case err == nil && td.expErrGet == nil:
+			case errGetDs == nil && td.expErrGet == nil:
 				// while SetDatastore must failing, GetDatastore must not get the same result
 				if rd == td.datastore && td.expErrSet != nil {
-					t.Errorf(td.errMsg+"got %v, while should be %v", rd, td.datastore)
+					t.Errorf("got %v, while should be %v", rd, td.datastore)
 				}
 				// if SetDatastore is ok, then GetDatastore must return the same result
 				if rd != td.datastore && td.expErrSet == nil {
-					t.Errorf(td.errMsg+"got %v, while should be %v", rd, td.datastore)
+					t.Errorf("got %v, while should be %v", rd, td.datastore)
 				}
-			case err != nil && td.expErrGet != nil:
-				if err.Error() != td.expErrGet.Error() {
-					t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
+			case errGetDs != nil && td.expErrGet != nil:
+				if errGetDs.Error() != td.expErrGet.Error() {
+					t.Errorf("got %s, while should be %s", errGetDs, td.expErrGet)
 				}
-			case err == nil && td.expErrGet != nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
-			case err != nil && td.expErrGet == nil:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
+			case errGetDs == nil && td.expErrGet != nil:
+				t.Errorf("got %s, while should be %s", errGetDs, td.expErrGet)
+			case errGetDs != nil && td.expErrGet == nil:
+				t.Errorf("got %s, while should be %s", errGetDs, td.expErrGet)
 			default:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErrGet)
+				t.Errorf("got %s, while should be %s", errGetDs, td.expErrGet)
 			}
 		})
 	}

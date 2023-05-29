@@ -15,8 +15,8 @@
         "port": 443,
         "tls_attr": {
             "skip_verify": false,
-            "cert_file": "./_clab/clab-evpn/.tls/spine1/spine1.pem",
-            "key_file": "./_clab/clab-evpn/.tls/spine1/spine1.key",
+            "cert_file": "./_clab/clab-evpn/.tls/spine4/spine4.pem",
+            "key_file": "./_clab/clab-evpn/.tls/spine4/spine4.key",
             "ca_file": "./_clab/clab-evpn/.tls/ca/ca.pem"
         }
     },
@@ -27,9 +27,18 @@
         "port": 443,
         "tls_attr": {
             "skip_verify": false,
-            "cert_file": "./_clab/clab-evpn/.tls/spine1/spine1.pem",
-            "key_file": "./_clab/clab-evpn/.tls/spine1/spine1.key",
+            "cert_file": "./_clab/clab-evpn/.tls/spine4/spine4.pem",
+            "key_file": "./_clab/clab-evpn/.tls/spine4/spine4.key",
             "ca_file": "./_clab/incorrect-root-ca.pem"
+        }
+    },
+    "oc_target": {
+        "host": "clab-evpn-spine3",
+        "username": "admin",
+        "password": "NokiaSrl1!",
+        "port": 443,
+        "tls_attr": {
+            "skip_verify": true
         }
     }
 }

@@ -1,0 +1,16 @@
+{
+    "jsonrpc": "2.0",
+    "id": 123,
+    "method": "set",
+    "params": {
+        "commands": [
+            {
+                "path": "/interface[name=ethernet-1/1]/ethernet/statistics/clear",
+                "value": "",
+                "action": "update"
+            }
+        ],
+        "yang-models": "srl",
+        "datastore": "tools"
+    }
+}

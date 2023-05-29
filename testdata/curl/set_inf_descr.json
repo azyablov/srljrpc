@@ -1,0 +1,15 @@
+{
+    "jsonrpc":"2.0",
+    "id": 6143224386846316514,
+    "method": "set",
+    "params": {
+            "commands": [
+                {
+                    "path":"/interface[name=system0]/description:test",
+                    "action":"update",
+                    "datastore":"candidate"
+                    }
+            ],
+            "yang-models": "srl"
+        }
+}
