@@ -72,7 +72,7 @@ func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error
 	if host == nil {
 		return nil, apierr.ClientError{
 			CltFunction: "NewJSONRPCClient",
-			Code:        apierr.ErrCtlNoHost,
+			Code:        apierr.ErrClntNoHost,
 			Err:         nil,
 		}
 	}
@@ -109,7 +109,7 @@ func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "NewJSONRPCClient",
-			Code:        apierr.ErrCtlTargetVerification,
+			Code:        apierr.ErrClntTargetVerification,
 			Err:         err,
 		}
 	}
@@ -134,7 +134,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 		//return nil, err
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
-			Code:        apierr.ErrCltMarshalling,
+			Code:        apierr.ErrClntMarshalling,
 			Err:         err,
 		}
 	}
@@ -143,7 +143,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
-			Code:        apierr.ErrCltHTTPReqCreation,
+			Code:        apierr.ErrClntHTTPReqCreation,
 			Err:         err,
 		}
 	}
@@ -156,7 +156,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
-			Code:        apierr.ErrCltHTTPSend,
+			Code:        apierr.ErrClntHTTPSend,
 			Err:         err,
 		}
 	}
@@ -165,7 +165,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
-			Code:        apierr.ErrCltHTTPStatus,
+			Code:        apierr.ErrClntHTTPStatus,
 			Err:         err,
 		}
 	}
@@ -174,14 +174,14 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
-			Code:        apierr.ErrCltJSONUnmarshalling,
+			Code:        apierr.ErrClntJSONUnmarshalling,
 			Err:         err,
 		}
 	}
 	if rpcResp.GetID() != r.GetID() {
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
-			Code:        apierr.ErrCltIDMismatch,
+			Code:        apierr.ErrClntIDMismatch,
 			Err:         err,
 		}
 	}
@@ -189,7 +189,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	if rpcResp.Error != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
-			Code:        apierr.ErrCtlJSONRPC,
+			Code:        apierr.ErrClntJSONRPC,
 			Err:         err,
 		}
 	}
@@ -206,7 +206,7 @@ func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
 		if err != nil {
 			return nil, apierr.ClientError{
 				CltFunction: "Get",
-				Code:        apierr.ErrCtlCmdCreation,
+				Code:        apierr.ErrClntCmdCreation,
 				Err:         err,
 			}
 		}
@@ -218,7 +218,7 @@ func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Get",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -234,7 +234,7 @@ func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 		if err != nil {
 			return nil, apierr.ClientError{
 				CltFunction: "State",
-				Code:        apierr.ErrCtlCmdCreation,
+				Code:        apierr.ErrClntCmdCreation,
 				Err:         err,
 			}
 		}
@@ -244,7 +244,7 @@ func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "State",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -259,7 +259,7 @@ func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 		if err != nil {
 			return nil, apierr.ClientError{
 				CltFunction: "Update",
-				Code:        apierr.ErrCtlCmdCreation,
+				Code:        apierr.ErrClntCmdCreation,
 				Err:         err,
 			}
 		}
@@ -270,7 +270,7 @@ func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Update",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -285,7 +285,7 @@ func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 		if err != nil {
 			return nil, apierr.ClientError{
 				CltFunction: "Replace",
-				Code:        apierr.ErrCtlCmdCreation,
+				Code:        apierr.ErrClntCmdCreation,
 				Err:         err,
 			}
 		}
@@ -296,7 +296,7 @@ func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Replace",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -312,7 +312,7 @@ func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 		if err != nil {
 			return nil, apierr.ClientError{
 				CltFunction: "Delete",
-				Code:        apierr.ErrCtlCmdCreation,
+				Code:        apierr.ErrClntCmdCreation,
 				Err:         err,
 			}
 		}
@@ -325,7 +325,7 @@ func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Delete",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -347,13 +347,13 @@ func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmT
 	case actions.NONE:
 		return nil, apierr.ClientError{
 			CltFunction: "DiffCandidate",
-			Code:        apierr.ErrCtlActNONE,
+			Code:        apierr.ErrClntActNONE,
 			Err:         nil,
 		}
 	default:
 		return nil, apierr.ClientError{
 			CltFunction: "DiffCandidate",
-			Code:        apierr.ErrCtlActUnsupported,
+			Code:        apierr.ErrClntActUnsupported,
 			Err:         nil,
 		}
 	}
@@ -361,7 +361,7 @@ func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmT
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "DiffCandidate",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -376,7 +376,7 @@ func (c *JSONRPCClient) BulkSetCandidate(delete []PV, replace []PV, update []PV,
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "BulkSetCandidate",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -391,7 +391,7 @@ func (c *JSONRPCClient) BulkDiffCandidate(delete []PV, replace []PV, update []PV
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "BulkDiffCandidate",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -406,7 +406,7 @@ func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Respon
 		if err != nil {
 			return nil, apierr.ClientError{
 				CltFunction: "Validate",
-				Code:        apierr.ErrCtlCmdCreation,
+				Code:        apierr.ErrClntCmdCreation,
 				Err:         err,
 			}
 		}
@@ -417,7 +417,7 @@ func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Respon
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Validate",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -433,7 +433,7 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 			//return nil, fmt.Errorf("tools(): %w", err)
 			return nil, apierr.ClientError{
 				CltFunction: "Tools",
-				Code:        apierr.ErrCtlCmdCreation,
+				Code:        apierr.ErrClntCmdCreation,
 				Err:         err,
 			}
 		}
@@ -443,7 +443,7 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Tools",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -456,7 +456,7 @@ func (c *JSONRPCClient) CLI(cmds []string, of formats.EnumOutputFormats) (*Respo
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "CLI",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -501,7 +501,7 @@ func (c *JSONRPCClient) targetVerification() error {
 	if err != nil {
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
-			Code:        apierr.ErrCtlCmdCreation,
+			Code:        apierr.ErrClntCmdCreation,
 			Err:         err,
 		}
 	}
@@ -509,7 +509,7 @@ func (c *JSONRPCClient) targetVerification() error {
 	if err != nil {
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
-			Code:        apierr.ErrCtlCmdCreation,
+			Code:        apierr.ErrClntCmdCreation,
 			Err:         err,
 		}
 	}
@@ -518,7 +518,7 @@ func (c *JSONRPCClient) targetVerification() error {
 	if err != nil {
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
-			Code:        apierr.ErrCtlRPCReqCreation,
+			Code:        apierr.ErrClntRPCReqCreation,
 			Err:         err,
 		}
 	}
@@ -532,7 +532,7 @@ func (c *JSONRPCClient) targetVerification() error {
 	if err = json.Unmarshal(rpcResp.Result, &hostAndVer); err != nil {
 		return apierr.ClientError{
 			CltFunction: "targetVerification",
-			Code:        apierr.ErrCltJSONUnmarshalling,
+			Code:        apierr.ErrClntJSONUnmarshalling,
 			Err:         err,
 		}
 	}
@@ -548,7 +548,7 @@ func WithOptPort(port *int) ClientOption {
 		if port == nil {
 			return apierr.ClientError{
 				CltFunction: "WithOptPort",
-				Code:        apierr.ErrCtlNoPort,
+				Code:        apierr.ErrClntNoPort,
 				Err:         nil,
 			}
 		}
@@ -571,7 +571,7 @@ func WithOptCredentials(u, p *string) ClientOption {
 		if u == nil {
 			return apierr.ClientError{
 				CltFunction: "WithOptCredentials",
-				Code:        apierr.ErrCtlNoUsername,
+				Code:        apierr.ErrClntNoUsername,
 				Err:         nil,
 			}
 		}
@@ -579,7 +579,7 @@ func WithOptCredentials(u, p *string) ClientOption {
 		if p == nil {
 			return apierr.ClientError{
 				CltFunction: "WithOptCredentials",
-				Code:        apierr.ErrCtlNoPassword,
+				Code:        apierr.ErrClntNoPassword,
 				Err:         nil,
 			}
 		}
@@ -601,7 +601,7 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			if len(*t.CAFile) == 0 || (!(len(*t.CertFile) == 0) && len(*t.KeyFile) == 0) || (len(*t.CertFile) == 0 && !(len(*t.KeyFile) == 0)) {
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrCtlTLSFilesUnspecified,
+					Code:        apierr.ErrClntTLSFilesUnspecified,
 					Err:         nil,
 				}
 			}
@@ -611,7 +611,7 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			if err != nil {
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrCtlTLSFOpenCA,
+					Code:        apierr.ErrClntTLSFOpenCA,
 					Err:         err,
 				}
 			}
@@ -619,7 +619,7 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			if err != nil {
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrCtlTLSFOpenCA,
+					Code:        apierr.ErrClntTLSFOpenCA,
 					Err:         err,
 				}
 			}
@@ -628,7 +628,7 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			if !certCAPool.AppendCertsFromPEM(bs) {
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrCtlTLSLoadCAPEM,
+					Code:        apierr.ErrClntTLSLoadCAPEM,
 					Err:         nil,
 				}
 			}
@@ -639,7 +639,7 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			if err != nil {
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrCtlTLSLoadCertPair,
+					Code:        apierr.ErrClntTLSLoadCertPair,
 					Err:         err,
 				}
 			}
@@ -649,7 +649,7 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 			if err != nil {
 				return apierr.ClientError{
 					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrCtlTLSCertParsing,
+					Code:        apierr.ErrClntTLSCertParsing,
 					Err:         err,
 				}
 			}

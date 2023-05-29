@@ -12,28 +12,28 @@ type EnumMsgErr int
 // Error messages for the Client class, which is the main class of the package.
 // For the error definition see the ClientError.Error() method.
 const (
-	ErrCltUndefined EnumCltErr = iota
-	ErrCtlNoHost
-	ErrCtlTargetVerification
-	ErrCltMarshalling
-	ErrCltHTTPReqCreation
-	ErrCltHTTPSend
-	ErrCltHTTPStatus
-	ErrCltJSONUnmarshalling
-	ErrCltIDMismatch
-	ErrCtlJSONRPC
-	ErrCtlCmdCreation
-	ErrCtlRPCReqCreation
-	ErrCtlActNONE
-	ErrCtlActUnsupported
-	ErrCtlNoPort
-	ErrCtlNoUsername
-	ErrCtlNoPassword
-	ErrCtlTLSFilesUnspecified
-	ErrCtlTLSFOpenCA
-	ErrCtlTLSLoadCAPEM
-	ErrCtlTLSLoadCertPair
-	ErrCtlTLSCertParsing
+	ErrClntUndefined EnumCltErr = iota
+	ErrClntNoHost
+	ErrClntTargetVerification
+	ErrClntMarshalling
+	ErrClntHTTPReqCreation
+	ErrClntHTTPSend
+	ErrClntHTTPStatus
+	ErrClntJSONUnmarshalling
+	ErrClntIDMismatch
+	ErrClntJSONRPC
+	ErrClntCmdCreation
+	ErrClntRPCReqCreation
+	ErrClntActNONE
+	ErrClntActUnsupported
+	ErrClntNoPort
+	ErrClntNoUsername
+	ErrClntNoPassword
+	ErrClntTLSFilesUnspecified
+	ErrClntTLSFOpenCA
+	ErrClntTLSLoadCAPEM
+	ErrClntTLSLoadCertPair
+	ErrClntTLSCertParsing
 )
 
 const (
@@ -74,49 +74,49 @@ func (e ClientError) Error() string {
 	f = strings.ToLower(string(f[0])) + f[1:]
 
 	switch e.Code {
-	case ErrCltUndefined:
+	case ErrClntUndefined:
 		m = "undefined error"
-	case ErrCtlNoHost:
+	case ErrClntNoHost:
 		m = "host is not set, but mandatory"
-	case ErrCtlTargetVerification:
+	case ErrClntTargetVerification:
 		m = "target verification error"
-	case ErrCltMarshalling:
+	case ErrClntMarshalling:
 		m = "marshalling error"
-	case ErrCltHTTPReqCreation:
+	case ErrClntHTTPReqCreation:
 		m = "HTTP request creation error"
-	case ErrCltHTTPSend:
+	case ErrClntHTTPSend:
 		m = "HTTP sending error"
-	case ErrCltHTTPStatus:
+	case ErrClntHTTPStatus:
 		m = "HTTP status error"
-	case ErrCltJSONUnmarshalling:
+	case ErrClntJSONUnmarshalling:
 		m = "JSON unmarshalling error"
-	case ErrCltIDMismatch:
+	case ErrClntIDMismatch:
 		m = "request and response IDs do not match"
-	case ErrCtlJSONRPC:
+	case ErrClntJSONRPC:
 		m = "JSON-RPC error"
-	case ErrCtlCmdCreation:
+	case ErrClntCmdCreation:
 		m = "command creation error"
-	case ErrCtlRPCReqCreation:
+	case ErrClntRPCReqCreation:
 		m = "RPC request creation error"
-	case ErrCtlActNONE:
+	case ErrClntActNONE:
 		m = "action can't be NONE"
-	case ErrCtlActUnsupported:
+	case ErrClntActUnsupported:
 		m = "unsupported action specified"
-	case ErrCtlNoPort:
+	case ErrClntNoPort:
 		m = "port could not be nil"
-	case ErrCtlNoUsername:
+	case ErrClntNoUsername:
 		m = "username could not be nil"
-	case ErrCtlNoPassword:
+	case ErrClntNoPassword:
 		m = "password could not be nil"
-	case ErrCtlTLSFilesUnspecified:
+	case ErrClntTLSFilesUnspecified:
 		m = "one of more files for rootCA / certificate / key are not specified"
-	case ErrCtlTLSFOpenCA:
+	case ErrClntTLSFOpenCA:
 		m = "failed to open rootCA file"
-	case ErrCtlTLSLoadCAPEM:
+	case ErrClntTLSLoadCAPEM:
 		m = "can't load PEM file for rootCA"
-	case ErrCtlTLSLoadCertPair:
+	case ErrClntTLSLoadCertPair:
 		m = "can't load PEM file for certificate / key pair"
-	case ErrCtlTLSCertParsing:
+	case ErrClntTLSCertParsing:
 		m = "certificate parsing error"
 	default:
 		m = "incorrect code error"
