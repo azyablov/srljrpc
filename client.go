@@ -187,7 +187,7 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	}
 
 	if rpcResp.Error != nil {
-		return nil, apierr.ClientError{
+		return &rpcResp, apierr.ClientError{
 			CltFunction: "Do",
 			Code:        apierr.ErrClntJSONRPC,
 			Err:         err,
