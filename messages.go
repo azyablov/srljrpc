@@ -31,10 +31,9 @@ func NewGetRequest(paths []string, recursion bool, defaults bool, of formats.Enu
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), cmdOpt...)
 		if err != nil {
-			// return nil, fmt.Errorf("newGetRequest(): %w", err)
 			return nil, apierr.MessageError{
 				MsgFunction: "NewGetRequest",
-				Message:     "error creating new command",
+				Code:        apierr.ErrMsgCmdCreation,
 				Err:         err,
 			}
 		}
@@ -48,10 +47,9 @@ func NewGetRequest(paths []string, recursion bool, defaults bool, of formats.Enu
 func NewSetRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of formats.EnumOutputFormats, ds datastores.EnumDatastores) (*Request, error) {
 	// Check if commands are empty for set and TOOLS datastore combination
 	if (len(delete) != 0 || len(replace) != 0) && ds == datastores.TOOLS {
-		//return nil, fmt.Errorf("no delete or replace commands allowed for method set and datastore TOOLS")
 		return nil, apierr.MessageError{
 			MsgFunction: "NewSetRequest",
-			Message:     "no delete or replace commands allowed for method set and datastore TOOLS",
+			Code:        apierr.ErrMsgSetNotAllowedActForTools,
 			Err:         nil,
 		}
 	}
@@ -61,8 +59,8 @@ func NewSetRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of
 	if err != nil {
 		return nil, apierr.MessageError{
 			MsgFunction: "NewSetRequest",
-			Message:     err.Error(),
-			Err:         nil,
+			Code:        apierr.ErrMsgCmdCreation,
+			Err:         err,
 		}
 	}
 
@@ -77,8 +75,8 @@ func NewValidateRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmTyp
 	if err != nil {
 		return nil, apierr.MessageError{
 			MsgFunction: "NewValidateRequest",
-			Message:     err.Error(),
-			Err:         nil,
+			Code:        apierr.ErrMsgCmdCreation,
+			Err:         err,
 		}
 	}
 
@@ -90,10 +88,9 @@ func NewValidateRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmTyp
 func NewDiffRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of formats.EnumOutputFormats, ds datastores.EnumDatastores) (*Request, error) {
 	// Check if commands are empty for diff and TOOLS datastore combination
 	if (len(delete) != 0 || len(replace) != 0) && ds == datastores.TOOLS {
-		// return nil, fmt.Errorf("no delete or replace commands allowed for method diff and datastore TOOLS")
 		return nil, apierr.MessageError{
 			MsgFunction: "NewDiffRequest",
-			Message:     "no delete or replace commands allowed for method diff and datastore TOOLS",
+			Code:        apierr.ErrMsgSetNotAllowedActForTools,
 			Err:         nil,
 		}
 	}
@@ -103,8 +100,8 @@ func NewDiffRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, o
 	if err != nil {
 		return nil, apierr.MessageError{
 			MsgFunction: "NewDiffRequest",
-			Message:     err.Error(),
-			Err:         nil,
+			Code:        apierr.ErrMsgCmdCreation,
+			Err:         err,
 		}
 	}
 
@@ -123,10 +120,9 @@ func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (
 	r.Method = &methods.Method{}
 	err := r.Method.SetMethod(m)
 	if err != nil {
-		//return nil, err
 		return nil, apierr.MessageError{
 			MsgFunction: "NewRequest",
-			Message:     "error setting method",
+			Code:        apierr.ErrMsgSettingMethod,
 			Err:         err,
 		}
 	}
@@ -145,18 +141,17 @@ func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (
 	// set commands
 	err = apply_cmds(r, cmds)
 	if err != nil {
-		// return nil, err
 		return nil, apierr.MessageError{
 			MsgFunction: "NewRequest",
-			Message:     err.Error(),
-			Err:         nil,
+			Code:        apierr.ErrMsgReqAddingCmds,
+			Err:         err,
 		}
 	}
 
 	// apply options to request
 	err = apply_opts(r, opts)
 	if err != nil {
-		//return nil, err
+		// Options creating MessageError.
 		return nil, err
 	}
 
@@ -180,10 +175,9 @@ type Request struct {
 func (r *Request) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		//return nil, err
 		return nil, apierr.MessageError{
 			MsgFunction: "Marshal",
-			Message:     "marshaling error",
+			Code:        apierr.ErrMsgReqMarshalling,
 			Err:         err,
 		}
 	}
@@ -202,7 +196,15 @@ func (r *Request) setID(id int) {
 
 // Set output format for the request via embedded Params.
 func (r *Request) SetOutputFormat(of formats.EnumOutputFormats) error {
-	return r.Params.OutputFormat.SetFormat(of)
+	err := r.Params.OutputFormat.SetFormat(of)
+	if err != nil {
+		return apierr.MessageError{
+			MsgFunction: "SetOutputFormat",
+			Code:        apierr.ErrMsgReqSettingOutFormat,
+			Err:         err,
+		}
+	}
+	return nil
 }
 
 // Requester is an interface used by the JSON RPC client to send a request to the server.
@@ -229,18 +231,29 @@ func WithYmType(ym yms.EnumYmType) RequestOption {
 	return func(r *Request) error {
 		m, err := r.GetMethod()
 		if err != nil {
-			return err
+			return apierr.MessageError{
+				MsgFunction: "WithYmType",
+				Code:        apierr.ErrMsgGettingMethod,
+				Err:         err,
+			}
 		}
 		// yang models specification on Request.Params level is not supported for method CLI and GET
 		if m == methods.CLI || m == methods.GET {
-			//return fmt.Errorf("yang models specification on Request.Params level is not supported for method %s", r.MethodName())
 			return apierr.MessageError{
 				MsgFunction: "WithYmType",
-				Message:     fmt.Sprintf("yang models specification on Request.Params level is not supported for method %s", r.MethodName()),
+				Code:        apierr.ErrMsgYANGSpecNotAllowed,
 				Err:         nil,
 			}
 		}
-		return r.Params.withYmType(ym)
+		err = r.Params.withYmType(ym)
+		if err != nil {
+			return apierr.MessageError{
+				MsgFunction: "WithYmType",
+				Code:        apierr.ErrMsgReqSettingYMParams,
+				Err:         err,
+			}
+		}
+		return nil
 	}
 }
 
@@ -252,10 +265,9 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 		switch m {
 		case methods.GET:
 			if ds == datastores.TOOLS {
-				//return fmt.Errorf("datastore TOOLS is not allowed for method %s", r.Method.MethodName())
 				return apierr.MessageError{
 					MsgFunction: "WithRequestDatastore",
-					Message:     fmt.Sprintf("datastore TOOLS is not allowed for method %s", r.Method.MethodName()),
+					Code:        apierr.ErrMsgReqGetDSNotAllowed,
 					Err:         nil,
 				}
 			}
@@ -268,36 +280,33 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 					//return err
 					return apierr.MessageError{
 						MsgFunction: "WithRequestDatastore",
-						Message:     "error getting action",
+						Code:        apierr.ErrMsgReqSetSettingAction,
 						Err:         err,
 					}
 				}
 				// now we can check if action UPDATE has value for CANDIDATE datastore
 				if ds == datastores.CANDIDATE && a == actions.UPDATE {
 					if c.Value == "" && !strings.Contains(c.Path, ":") {
-						// return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
 						return apierr.MessageError{
 							MsgFunction: "WithRequestDatastore",
-							Message:     fmt.Sprintf("value isn't specified or not found in the path for method %s", r.Method.MethodName()),
+							Code:        apierr.ErrMsgDSCandidateUpdateNoValue,
 							Err:         nil,
 						}
 					}
 				}
 				// The set method can be used with tools datastores only with the update action.
 				if ds == datastores.TOOLS && a != actions.UPDATE {
-					//return fmt.Errorf("only update action is allowed with TOOLS datastore for method %s", r.Method.MethodName())
 					return apierr.MessageError{
 						MsgFunction: "WithRequestDatastore",
-						Message:     fmt.Sprintf("only update action is allowed with TOOLS datastore for method %s", r.Method.MethodName()),
+						Code:        apierr.ErrMsgDSToolsSetUpdateOnly,
 						Err:         nil,
 					}
 				}
 			}
 			if ds != datastores.CANDIDATE && ds != datastores.TOOLS {
-				//return fmt.Errorf("only CANDIDATE and TOOLS datastores allowed for method %s", r.Method.MethodName())
 				return apierr.MessageError{
 					MsgFunction: "WithRequestDatastore",
-					Message:     fmt.Sprintf("only CANDIDATE and TOOLS datastores allowed for method %s", r.Method.MethodName()),
+					Code:        apierr.ErrMsgDSToolsCandidateSetOnly,
 					Err:         nil,
 				}
 			}
@@ -308,10 +317,9 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 				c.CleanDatastore() // clean datastore in commands, to be decided later if such protective measures are needed, since c.IsDefaultDatastore() added as verification check for SET/VALIDATE
 			}
 			if ds != datastores.CANDIDATE {
-				//return fmt.Errorf("only CANDIDATE datastore allowed for method %s", r.Method.MethodName())
 				return apierr.MessageError{
 					MsgFunction: "WithRequestDatastore",
-					Message:     fmt.Sprintf("only CANDIDATE datastore allowed for method %s", r.Method.MethodName()),
+					Code:        apierr.ErrMsgDSCandidateValidateOnly,
 					Err:         nil,
 				}
 			}
@@ -321,20 +329,18 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 			for _, c := range r.Params.Commands {
 				c.CleanDatastore() // clean datastore in commands, to be decided later if such protective measures are needed, since c.IsDefaultDatastore() added as verification check for SET/VALIDATE
 			}
-			if ds != datastores.CANDIDATE && ds != datastores.TOOLS {
-				//return fmt.Errorf("only CANDIDATE or TOOLS datastore allowed for method %s", r.Method.MethodName())
+			if ds != datastores.CANDIDATE {
 				return apierr.MessageError{
 					MsgFunction: "WithRequestDatastore",
-					Message:     fmt.Sprintf("only CANDIDATE or TOOLS datastore allowed for method %s", r.Method.MethodName()),
+					Code:        apierr.ErrMsgDSCandidateDiffOnly,
 					Err:         nil,
 				}
 			}
 			return r.Params.withDatastore(ds)
 		default:
-			//return fmt.Errorf("datastore specification on Request.Params level is not supported for method %s", r.MethodName())
 			return apierr.MessageError{
 				MsgFunction: "WithRequestDatastore",
-				Message:     fmt.Sprintf("datastore specification on Request.Params level is not supported for method %s", r.MethodName()),
+				Code:        apierr.ErrMsgDSSpecNotAllowedForUnknownMethod,
 				Err:         nil,
 			}
 		}
@@ -569,10 +575,9 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 	r.Method = &methods.Method{}
 	err := r.Method.SetMethod(methods.CLI)
 	if err != nil {
-		//return nil, err
 		return nil, apierr.MessageError{
 			MsgFunction: "NewCLIRequest",
-			Message:     "error setting method",
+			Code:        apierr.ErrMsgSettingMethod,
 			Err:         err,
 		}
 	}
@@ -588,23 +593,17 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 	// set commands
 	err = r.Params.appendCommands(cmds)
 	if err != nil {
-		//return nil, err
 		return nil, apierr.MessageError{
 			MsgFunction: "NewCLIRequest",
-			Message:     err.Error(),
-			Err:         nil,
+			Code:        apierr.ErrMsgCLIAddingCmdsInReq,
+			Err:         err,
 		}
 	}
 
 	// apply options to request
 	err = r.SetOutputFormat(of)
 	if err != nil {
-		//return nil, err
-		return nil, apierr.MessageError{
-			MsgFunction: "NewCLIRequest",
-			Message:     err.Error(),
-			Err:         nil,
-		}
+		return nil, err
 	}
 
 	return r, nil
@@ -626,10 +625,9 @@ type CLIRequest struct {
 func (r *CLIRequest) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		//return nil, err
 		return nil, apierr.MessageError{
 			MsgFunction: "Marshal",
-			Message:     "marshaling error",
+			Code:        apierr.ErrMsgReqMarshalling,
 			Err:         err,
 		}
 	}
@@ -648,7 +646,15 @@ func (r *CLIRequest) setID(id int) {
 
 // Sets the output format of the request.
 func (r *CLIRequest) SetOutputFormat(of formats.EnumOutputFormats) error {
-	return r.Params.OutputFormat.SetFormat(of)
+	err := r.Params.OutputFormat.SetFormat(of)
+	if err != nil {
+		return apierr.MessageError{
+			MsgFunction: "SetOutputFormat",
+			Code:        apierr.ErrMsgCLISettingOutFormat,
+			Err:         err,
+		}
+	}
+	return nil
 }
 
 // RpcError is generic JSON RPC error object.
@@ -681,10 +687,9 @@ type Response struct {
 func (r *Response) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		//return nil, err
 		return nil, apierr.MessageError{
 			MsgFunction: "Marshal",
-			Message:     "marshaling error",
+			Code:        apierr.ErrMsgRespMarshalling,
 			Err:         err,
 		}
 	}

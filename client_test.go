@@ -161,7 +161,7 @@ func TestNewJSONRPCClient(t *testing.T) {
 			opts: []srljrpc.ClientOption{srljrpc.WithOptCredentials(&icaIP.Username, &icaIP.Password), srljrpc.WithOptPort(&icaIP.Port), srljrpc.WithOptTLS(&icaIP.TLSAttr)},
 			expErr: apierr.ClientError{
 				CltFunction: "NewJSONRPCClient",
-				Message:     "target verification failed",
+				Code:        apierr.ErrClntTargetVerification,
 			}}, // should fail, CA cert is incorrect
 	}
 	for _, td := range icaTestData {
@@ -203,7 +203,7 @@ func TestGet(t *testing.T) {
 			paths: []string{"/system/json-rpc-server/invalid"},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"},
+				Code:        apierr.ErrClntJSONRPC},
 		}, // should fail, invalid path
 	}
 	for _, td := range getTestData {
@@ -245,7 +245,7 @@ func TestState(t *testing.T) {
 			paths: []string{"/lldp/statistics/invalid"},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"},
+				Code:        apierr.ErrClntJSONRPC},
 		}, // should fail, invalid path
 	}
 	for _, td := range getTestData {
@@ -289,14 +289,14 @@ func TestUpdate(t *testing.T) {
 				{"/interface[name=system0]/invalid", srljrpc.CommandValue("test")}},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"},
+				Code:        apierr.ErrClntJSONRPC},
 		}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with default target and missed value",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")}},
 			expErr: apierr.ClientError{
 				CltFunction: "Update",
-				Message:     "request creation error"},
+				Code:        apierr.ErrClntRPCReqCreation},
 		}, // should fail, missed value
 	}
 	for _, td := range setTestData {
@@ -357,7 +357,7 @@ func TestBulkSetCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"}}, // should fail, invalid path
+				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with OC target and missed value",
 			delete: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("")},
@@ -372,7 +372,7 @@ func TestBulkSetCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "BulkSetCandidate",
-				Message:     "request creation error",
+				Code:        apierr.ErrClntRPCReqCreation,
 			}}, // should fail, missed value
 	}
 	for _, td := range setOCTestData {
@@ -429,7 +429,7 @@ func TestBulkSetCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"}}, // should fail, invalid path
+				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with SRL default target and missed value",
 			delete: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")},
@@ -443,7 +443,7 @@ func TestBulkSetCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "BulkSetCandidate",
-				Message:     "request creation error",
+				Code:        apierr.ErrClntRPCReqCreation,
 			}}, // should fail, missed value
 	}
 	for _, td := range setTestData {
@@ -505,7 +505,7 @@ func TestBulkDiffCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"}}, // should fail, invalid path
+				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with OC target and missed value",
 			delete: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("")},
@@ -520,7 +520,7 @@ func TestBulkDiffCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "BulkDiffCandidate",
-				Message:     "request creation error",
+				Code:        apierr.ErrClntRPCReqCreation,
 			}}, // should fail, missed value
 	}
 	for _, td := range setOCTestData {
@@ -577,7 +577,7 @@ func TestBulkDiffCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"}}, // should fail, invalid path
+				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with SRL default target and missed value",
 			delete: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")},
@@ -591,7 +591,7 @@ func TestBulkDiffCandidate(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "BulkDiffCandidate",
-				Message:     "request creation error",
+				Code:        apierr.ErrClntRPCReqCreation,
 			}}, // should fail, missed value
 	}
 	for _, td := range setTestData {
@@ -634,7 +634,7 @@ func TestReplace(t *testing.T) {
 			pvs: []srljrpc.PV{{"/interface[name=system0]/invalid:test", srljrpc.CommandValue("")}},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"},
+				Code:        apierr.ErrClntJSONRPC},
 		}, // should fail, invalid path
 	}
 	for _, td := range getTestData {
@@ -676,7 +676,7 @@ func TestDelete(t *testing.T) {
 			paths: []string{"/interface[name=system0]/invalid"},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"},
+				Code:        apierr.ErrClntJSONRPC},
 		}, // should fail, invalid path
 	}
 	for _, td := range setTestData {
@@ -721,14 +721,14 @@ func TestValidate(t *testing.T) {
 				{"/interface[name=system0]/invalid", srljrpc.CommandValue("test")}},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"},
+				Code:        apierr.ErrClntJSONRPC},
 		}, // should fail, invalid path
 		{testName: "Validate against CANDIDATE datastore with default target and missed value",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")}},
 			expErr: apierr.ClientError{
 				CltFunction: "Validate",
-				Message:     "request creation error"},
+				Code:        apierr.ErrClntRPCReqCreation},
 		}, // should fail, missed value
 	}
 
@@ -773,14 +773,14 @@ func TestTools(t *testing.T) {
 			},
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
-				Message:     "JSON-RPC error"},
+				Code:        apierr.ErrClntJSONRPC},
 		}, // should fail, invalid path
 		{testName: "Set against TOOLS with double value",
 			pvs: []srljrpc.PV{
 				{"/network-instance[name=default]/protocols/bgp/group[group-name=underlay]/soft-clear/peer-as:65020", srljrpc.CommandValue("65020")}},
 			expErr: apierr.ClientError{
 				CltFunction: "Tools",
-				Message:     "request creation error"},
+				Code:        apierr.ErrClntRPCReqCreation},
 		}, // should fail, value specified two times
 	}
 
@@ -876,7 +876,7 @@ func TestCLI(t *testing.T) {
 				of:   formats.TEXT,
 				expErr: apierr.ClientError{
 					CltFunction: "CLI",
-					Message:     "request creation error"},
+					Code:        apierr.ErrClntRPCReqCreation},
 			}, // should fail, empty command
 		}
 		// CLI with default target using CLI()

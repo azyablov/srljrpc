@@ -4,7 +4,6 @@ package srljrpc_test
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"testing"
 
@@ -46,7 +45,7 @@ func TestNewRequest_Get(t *testing.T) {
 		})
 	}
 
-	m := "get"
+	//m := "get"
 	testData := []struct {
 		testName  string
 		cmd       *srljrpc.Command
@@ -56,11 +55,11 @@ func TestNewRequest_Get(t *testing.T) {
 	}{
 		{"Basic GET", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"get","params":{"commands":[{"path":"/system/name/host-name"}],"output-format":"json"}}`, []srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.JSON)}},
 		{"Basic GET with options", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"get","params":{"commands":[{"path":"/system/name/host-name","recursive":false,"include-field-defaults":true,"datastore":"state"}]}}`, []srljrpc.RequestOption{}},
-		{"Basic GET with value", cmdResults[2], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value not allowed for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic GET with actions", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("action not allowed for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic GET with command TOOLS datastore}", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("datastore TOOLS is not allowed for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic GET with empty path", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("path not found, but should be specified for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic GET with request TOOLS datastore", cmdResults[6], apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("datastore TOOLS is not allowed for method %s", m)}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.TOOLS)}},
+		{"Basic GET with value", cmdResults[2], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic GET with actions", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic GET with command TOOLS datastore", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic GET with empty path", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic GET with request TOOLS datastore", cmdResults[6], apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgReqGetDSNotAllowed}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.TOOLS)}},
 	}
 
 	for _, td := range testData {
@@ -113,7 +112,7 @@ func TestNewRequest_Get(t *testing.T) {
 }
 
 func TestNewGetRequest(t *testing.T) {
-	m := "get"
+	//m := "get"
 	testData := []struct {
 		testName  string
 		paths     []string
@@ -130,7 +129,7 @@ func TestNewGetRequest(t *testing.T) {
 			`{"jsonrpc":"2.0","id":{{.}},"method":"get","params":{"commands":[{"path":"/system/name/host-name","include-field-defaults":true},{"path":"/interface[name=ethernet-1/1]/description","include-field-defaults":true}],"output-format":"table","datastore":"candidate"}}`}, // should succeed
 		{"GET Request w/ recursion w/o def w/ TEXT, w/ STATE", []string{"/system/name/host-name", "/interface[name=ethernet-1/1]/description"}, false, true, formats.TEXT, datastores.STATE, nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"get","params":{"commands":[{"path":"/system/name/host-name","include-field-defaults":true},{"path":"/interface[name=ethernet-1/1]/description","include-field-defaults":true}],"output-format":"text","datastore":"state"}}`}, // should succeed
-		{"GET Request w/ recursion w/o def w/ JSON, w/ TOOLS", []string{"/system/name/host-name", "/interface[name=ethernet-1/1]/description"}, false, false, formats.JSON, datastores.TOOLS, apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("datastore TOOLS is not allowed for method %s", m)},
+		{"GET Request w/ recursion w/o def w/ JSON, w/ TOOLS", []string{"/system/name/host-name", "/interface[name=ethernet-1/1]/description"}, false, false, formats.JSON, datastores.TOOLS, apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgReqGetDSNotAllowed},
 			"null"}, // should fail, bcz of unsupported datastore TOOLS
 	}
 
@@ -219,7 +218,7 @@ func TestNewRequest_Set(t *testing.T) {
 		})
 	}
 
-	m := "set"
+	//m := "set"
 	testData := []struct {
 		testName  string
 		cmd       *srljrpc.Command
@@ -229,20 +228,20 @@ func TestNewRequest_Set(t *testing.T) {
 	}{
 		{"Basic SET UPDATE", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdate","action":"update"}]}}`, []srljrpc.RequestOption{}},
 		{"Basic SET REPLACE", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetReplace","action":"replace"}]}}`, []srljrpc.RequestOption{}},
-		{"Basic SET DELETE", cmdResults[2], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value specified for action DELETE for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic SET with unsupported command lvl datastore RUNNING}", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("command level datastore must not be set for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic SET without action", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("action not found, but should be specified for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic SET with empty path", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("path not found, but should be specified for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic SET with empty value", cmdResults[6], apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("value isn't specified or not found in the path for method %s", m)}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.CANDIDATE)}},
+		{"Basic SET DELETE", cmdResults[2], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET with unsupported command lvl datastore RUNNING}", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET without action", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET with empty path", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET with empty value", cmdResults[6], apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSCandidateUpdateNoValue}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.CANDIDATE)}},
 		{"Basic SET with k:v path", cmdResults[7], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name:test","action":"update"}]}}`, []srljrpc.RequestOption{}},
-		{"Basic SET with k:v path and value", cmdResults[8], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value specified in the path and as a separate value for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic SET with incorrect k:v path", cmdResults[9], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("invalid k:v path specification for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic SET with unsupported command lvl datastore TOOLS", cmdResults[10], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("command level datastore must not be set for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic SET with unsupported command lvl datastore CANDIDATE", cmdResults[11], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("command level datastore must not be set for method %s", m)}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET with k:v path and value", cmdResults[8], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET with incorrect k:v path", cmdResults[9], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET with unsupported command lvl datastore TOOLS", cmdResults[10], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic SET with unsupported command lvl datastore CANDIDATE", cmdResults[11], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
 		{"Basic SET UPDATE output format TEXT and ym SRL ", cmdResults[12], nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdateTEXTSRL","action":"update"}],"output-format":"text","yang-models":"srl"}}`,
 			[]srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.TEXT), srljrpc.WithYmType(yms.SRL)}},
-		{"Basic SET REPLACE w/ RUNNING datastore", cmdResults[13], apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("only CANDIDATE and TOOLS datastores allowed for method %s", m)}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.RUNNING)}},
+		{"Basic SET REPLACE w/ RUNNING datastore", cmdResults[13], apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSToolsCandidateSetOnly}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.RUNNING)}},
 		{"Basic SET UPDATE output format TEXT, datastore TOOLS and ym OC", cmdResults[14], nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdateTEXTSRL","action":"update"}],"output-format":"table","datastore":"tools","yang-models":"oc"}}`,
 			[]srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.TABLE), srljrpc.WithYmType(yms.OC), srljrpc.WithRequestDatastore(datastores.TOOLS)}},
@@ -298,7 +297,7 @@ func TestNewRequest_Set(t *testing.T) {
 }
 
 func TestNewSetRequest(t *testing.T) {
-	m := "set"
+	//m := "set"
 	testData := []struct {
 		testName  string
 		delete    []srljrpc.PV
@@ -319,19 +318,19 @@ func TestNewSetRequest(t *testing.T) {
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Delete")}},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Replace")}},
 			[]srljrpc.PV{{"/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer", srljrpc.CommandValue("Update")}}, yms.OC, formats.TEXT, datastores.TOOLS,
-			apierr.MessageError{MsgFunction: "newSetRequest", Message: fmt.Sprintf("no delete or replace commands allowed for method %s and datastore TOOLS", m)},
+			apierr.MessageError{MsgFunction: "newSetRequest", Code: apierr.ErrMsgSetNotAllowedActForTools},
 			`null`}, // should fail, bcz of unsupported datastore TOOLS
 		{"SET Request w/ SRL w/ TABLE w/ RUNNING",
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Delete")}},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Replace")}},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Update")}}, yms.SRL, formats.TABLE, datastores.RUNNING,
-			apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("only CANDIDATE and TOOLS datastores allowed for method %s", m)},
+			apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSToolsCandidateSetOnly},
 			`null`}, // should fail, bcz of unsupported datastore RUNNING
 		{"SET Request w/ OC w/ TEXT w/ CANDIDATE",
 			[]srljrpc.PV{},
 			[]srljrpc.PV{},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("")}}, yms.SRL, formats.JSON, datastores.CANDIDATE,
-			apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("value isn't specified or not found in the path for method %s", m)},
+			apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSCandidateUpdateNoValue},
 			`null`}, // should fail, bcz UPDATE action should have value for CANDIDATE datastore
 		{"SET Request w/ SRL w/ JSON w/ TOOLS",
 			[]srljrpc.PV{},
@@ -398,18 +397,6 @@ func TestNewRequest_Validate(t *testing.T) {
 		value  srljrpc.CommandValue
 		opts   []srljrpc.CommandOption
 	}{
-		// {actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOption{}},                                              // should succeed
-		// {actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOption{}},                                            // should succeed
-		// {actions.DELETE, "/system/name/host-name", srljrpc.CommandValue("SetDelete"), []srljrpc.CommandOption{}},                                              // should fail cause of value not allowed
-		// {actions.DELETE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOption{srljrpc.WithDatastore(datastores.RUNNING)}},              // should be failing due to unsupported datastore by SET
-		// {actions.NONE, "/system/name/host-name", srljrpc.CommandValue("test"), []srljrpc.CommandOption{}},                                                     // should be failing due to unsupported action NONE by SET
-		// {actions.UPDATE, "", srljrpc.CommandValue("test"), []srljrpc.CommandOption{}},                                                                         // should be failing due to empty path
-		// {actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOption{}},                                                       // should be failing due to empty value
-		// {actions.UPDATE, "/system/name/host-name:test", srljrpc.CommandValue(""), []srljrpc.CommandOption{}},                                                  // should not fail, bcz of :test value specified as part of path
-		// {actions.REPLACE, "/system/name/host-name:test", srljrpc.CommandValue("TEST"), []srljrpc.CommandOption{}},                                             // should fail, bcz of :test value specified as part of path and value is not empty
-		// {actions.REPLACE, "/system/name/host-name:test:TEST", srljrpc.CommandValue(""), []srljrpc.CommandOption{}},                                            // should not fail, bcz of :test:TEST value specified as part of path
-		// {actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOption{srljrpc.WithDatastore(datastores.TOOLS)}},       // should fail because of datastore specified.
-		// {actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOption{srljrpc.WithDatastore(datastores.CANDIDATE)}}, // should fail because of datastore specified.
 		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdate"), []srljrpc.CommandOption{}},                                              // should succeed
 		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplace"), []srljrpc.CommandOption{}},                                            // should succeed
 		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue("SetDelete"), []srljrpc.CommandOption{}},                                              // should fail cause of value not allowed
@@ -438,7 +425,7 @@ func TestNewRequest_Validate(t *testing.T) {
 		})
 	}
 
-	m := "validate"
+	//m := "validate"
 	testData := []struct {
 		testName  string
 		cmd       *srljrpc.Command
@@ -446,33 +433,21 @@ func TestNewRequest_Validate(t *testing.T) {
 		tmplJSON  string
 		opts      []srljrpc.RequestOption
 	}{
-		// {"Basic VALIDATE UPDATE w/o datastore", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdate","action":"update"}]}}`},
-		// {"Basic VALIDATE REPLACE w/o datastore", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetReplace","action":"replace"}]}}`},
-		// {"Basic VALIDATE DELETE w/o datastore", cmdResults[2], fmt.Errorf("value specified for action DELETE for method %s", m), `null`},
-		// {"Basic VALIDATE with unsupported datastore RUNNING}", cmdResults[3], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
-		// {"Basic VALIDATE without action", cmdResults[4], fmt.Errorf("action not found, but should be specified for method %s", m), `null`},
-		// {"Basic VALIDATE with empty path", cmdResults[5], fmt.Errorf("path not found, but should be specified for method %s", m), `null`},
-		// {"Basic VALIDATE with empty value", cmdResults[6], fmt.Errorf("value isn't specified or not found in the path for method %s", m), `null`},
-		// {"Basic VALIDATE with k:v path", cmdResults[7], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name:test","action":"update"}]}}`},
-		// {"Basic VALIDATE with k:v path and value", cmdResults[8], fmt.Errorf("value specified in the path and as a separate value for method %s", m), `null`},
-		// {"Basic VALIDATE with incorrect k:v path", cmdResults[9], fmt.Errorf("invalid k:v path specification for method %s", m), `null`},
-		// {"Basic VALIDATE with unsupported datastore TOOLS", cmdResults[10], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
-		// {"Basic VALIDATE with unsupported datastore CANDIDATE", cmdResults[11], fmt.Errorf("command level datastore must not be set for method %s", m), `null`},
-		{"Basic SEVALIDATET UPDATE", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdate","action":"update"}]}}`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE UPDATE", cmdResults[0], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdate","action":"update"}]}}`, []srljrpc.RequestOption{}},
 		{"Basic VALIDATE REPLACE", cmdResults[1], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetReplace","action":"replace"}]}}`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE DELETE", cmdResults[2], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value specified for action DELETE for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE with unsupported command lvl datastore RUNNING}", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("command level datastore must not be set for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE without action", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("action not found, but should be specified for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE with empty path", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("path not found, but should be specified for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE with empty value", cmdResults[6], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value isn't specified or not found in the path for method %s", m)}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE DELETE", cmdResults[2], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE with unsupported command lvl datastore RUNNING}", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE without action", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE with empty path", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE with empty value", cmdResults[6], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
 		{"Basic VALIDATE with k:v path", cmdResults[7], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name:test","action":"update"}]}}`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE with k:v path and value", cmdResults[8], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value specified in the path and as a separate value for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE with incorrect k:v path", cmdResults[9], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("invalid k:v path specification for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE with unsupported command lvl datastore TOOLS", cmdResults[10], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("command level datastore must not be set for method %s", m)}, `null`, []srljrpc.RequestOption{}},
-		{"Basic VALIDATE with unsupported command lvl datastore CANDIDATE", cmdResults[11], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("command level datastore must not be set for method %s", m)}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE with k:v path and value", cmdResults[8], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE with incorrect k:v path", cmdResults[9], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE with unsupported command lvl datastore TOOLS", cmdResults[10], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
+		{"Basic VALIDATE with unsupported command lvl datastore CANDIDATE", cmdResults[11], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
 		{"Basic VALIDATE UPDATE output format TEXT and ym SRL", cmdResults[12], nil, `{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdateTEXTSRL","action":"update"}],"output-format":"text","yang-models":"srl"}}`,
 			[]srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.TEXT), srljrpc.WithYmType(yms.SRL)}},
-		{"Basic VALIDATE REPLACE w/ RUNNING datastore", cmdResults[13], apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("only CANDIDATE datastore allowed for method %s", m)}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.RUNNING)}},
+		{"Basic VALIDATE REPLACE w/ RUNNING datastore", cmdResults[13], apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSCandidateValidateOnly}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.RUNNING)}},
 		{"Basic VALIDATE UPDATE output format TEXT, datastore TOOLS and ym OC", cmdResults[14], nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"validate","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdateTEXTSRL","action":"update"}],"output-format":"table","datastore":"candidate","yang-models":"oc"}}`,
 			[]srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.TABLE), srljrpc.WithYmType(yms.OC), srljrpc.WithRequestDatastore(datastores.CANDIDATE)}},
@@ -528,7 +503,7 @@ func TestNewRequest_Validate(t *testing.T) {
 }
 
 func TestNewValidateRequest(t *testing.T) {
-	m := "validate"
+	//m := "validate"
 	testData := []struct {
 		testName  string
 		delete    []srljrpc.PV
@@ -548,7 +523,7 @@ func TestNewValidateRequest(t *testing.T) {
 		{"VALIDATE Request w/ OC w/ TEXT w/ TOOLS",
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Delete")}},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Replace")}},
-			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Update")}}, yms.OC, formats.TEXT, datastores.TOOLS, apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("only CANDIDATE datastore allowed for method %s", m)},
+			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Update")}}, yms.OC, formats.TEXT, datastores.TOOLS, apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSCandidateValidateOnly},
 			`null`}, // should fail, bcz of unsupported datastore TOOLS
 		{"VALIDATE Request w/ SRL w/ TABLE w/ CANDIDATE",
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Delete")}},
@@ -618,8 +593,8 @@ func TestNewCLIRequest(t *testing.T) {
 		{"CLI Request with JSON output format", []string{"show version", "show system lldp neighbor", "info from state network-instance default interface system0.0"}, `{"jsonrpc":"2.0","id":{{.}},"method":"cli","params":{"commands":["show version","show system lldp neighbor","info from state network-instance default interface system0.0"],"output-format":"json"}}`, formats.JSON, nil},
 		{"CLI Request with TEXT output format", []string{"show version", "show system lldp neighbor", "info from state network-instance default interface system0.0"}, `{"jsonrpc":"2.0","id":{{.}},"method":"cli","params":{"commands":["show version","show system lldp neighbor","info from state network-instance default interface system0.0"],"output-format":"text"}}`, formats.TEXT, nil},
 		{"CLI Request with TABLE output format", []string{"show version", "show system lldp neighbor", "info from state network-instance default interface system0.0"}, `{"jsonrpc":"2.0","id":{{.}},"method":"cli","params":{"commands":["show version","show system lldp neighbor","info from state network-instance default interface system0.0"],"output-format":"table"}}`, formats.TABLE, nil},
-		{"CLI Request with empty command", []string{"show version", "", "info from state network-instance default interface system0.0"}, `null`, formats.TABLE, apierr.MessageError{MsgFunction: "NewCLIRequest", Message: "empty commands are not allowed"}},
-		{"CLI Request with fake(100) output format", []string{"show version", "show system lldp neighbor", "info from state network-instance default interface system0.0"}, `null`, formats.EnumOutputFormats(100), apierr.MessageError{MsgFunction: "NewCLIRequest", Message: formats.SetErrMsg}},
+		{"CLI Request with empty command", []string{"show version", "", "info from state network-instance default interface system0.0"}, `null`, formats.TABLE, apierr.MessageError{MsgFunction: "NewCLIRequest", Code: apierr.ErrMsgReqAddingCmds}},
+		{"CLI Request with fake(100) output format", []string{"show version", "show system lldp neighbor", "info from state network-instance default interface system0.0"}, `null`, formats.EnumOutputFormats(100), apierr.MessageError{MsgFunction: "SetOutputFormat", Code: apierr.ErrMsgReqSettingOutFormat}},
 	}
 	for _, td := range testData {
 		t.Run(td.testName, func(t *testing.T) {
@@ -714,14 +689,14 @@ func TestNewRequest_Diff(t *testing.T) {
 			`{"jsonrpc":"2.0","id":{{.}},"method":"diff","params":{"commands":[{"path":"/interface[name=ethernet-1/1]/description","value":"DiffReplace","action":"replace"}]}}`}, // #2
 		{"Basic DIFF DELETE w/o datastore [exp. SUCC]", cmdResults[2], nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"diff","params":{"commands":[{"path":"/interface[name=ethernet-1/1]/description","action":"delete"}],"yang-models":"oc"}}`}, // #3
-		{"Basic DIFF DELETE with value [exp. FAIL]", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value specified for action DELETE for method %s", m)}, `null`},                    // #4
-		{"Basic DIFF without action [exp. FAIL]", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("action not found, but should be specified for method %s", m)}, `null`},               // #5
-		{"Basic DIFF UPDATE with correct datastore [exp. FAIL]", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("command level datastore must not be set for method %s", m)}, `null`},  // #6
-		{"Basic DIFF UPDATE with empty path [exp. FAIL]", cmdResults[6], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("path not found, but should be specified for method %s", m)}, `null`},         // #7
-		{"Basic DIFF UPDATE with empty value [exp. FAIL]", cmdResults[7], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value isn't specified or not found in the path for method %s", m)}, `null`}, // #8
+		{"Basic DIFF DELETE with value [exp. FAIL]", cmdResults[3], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`},             // #4
+		{"Basic DIFF without action [exp. FAIL]", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`},                // #5
+		{"Basic DIFF UPDATE with correct datastore [exp. FAIL]", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`}, // #6
+		{"Basic DIFF UPDATE with empty path [exp. FAIL]", cmdResults[6], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`},        // #7
+		{"Basic DIFF UPDATE with empty value [exp. FAIL]", cmdResults[7], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`},       // #8
 		{"Basic DIFF UPDATE with k:v path and value and path keywords [exp. SUCC]", cmdResults[8], nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"diff","params":{"commands":[{"path":"/interface[name=ethernet-1/1]/description:DiffUpdate_test","path-keywords":{"name":"ethernet-1/1"},"action":"update"}],"yang-models":"oc"}}`}, // #9
-		{"Basic DIFF REPLACE with :test value specified as part of path and value is not empty [exp. FAIL]", cmdResults[9], apierr.MessageError{MsgFunction: "NewRequest", Message: fmt.Sprintf("value specified in the path and as a separate value for method %s", m)}, `null`}, // #10
+		{"Basic DIFF REPLACE with :test value specified as part of path and value is not empty [exp. FAIL]", cmdResults[9], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`}, // #10
 		{"Basic DIFF REPLACE with w defaults and w/o recursion [exp. SUCC]", cmdResults[10], nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"diff","params":{"commands":[{"path":"/interface[name=ethernet-1/1]/description:DiffReplace_test","recursive":false,"include-field-defaults":true,"action":"replace"}],"yang-models":"srl"}}`}, // #11
 	}
@@ -784,7 +759,7 @@ func TestNewRequest_Diff(t *testing.T) {
 }
 
 func TestNewDiffRequest(t *testing.T) {
-	m := "diff"
+	//m := "diff"
 	testData := []struct {
 		testName  string
 		delete    []srljrpc.PV
@@ -804,7 +779,7 @@ func TestNewDiffRequest(t *testing.T) {
 		{"VALIDATE Request w/ OC w/ TEXT w/ RUNNING",
 			[]srljrpc.PV{{"/interfaces/interface[name=mgmt0]/subinterfaces/subinterface[index=0]", srljrpc.CommandValue("ValueDelete_should_not_trigger_error")}},
 			[]srljrpc.PV{{"/interfaces/interface[name=ethernet-1/1]/subinterfaces/subinterface[index=0]/config/description:diff oc test w/o underscore", srljrpc.CommandValue("")}},
-			[]srljrpc.PV{{"/interfaces/interface[name=system0]/config/description:UPDATED", srljrpc.CommandValue("")}}, yms.OC, formats.TEXT, datastores.RUNNING, apierr.MessageError{MsgFunction: "WithRequestDatastore", Message: fmt.Sprintf("only CANDIDATE or TOOLS datastore allowed for method %s", m)},
+			[]srljrpc.PV{{"/interfaces/interface[name=system0]/config/description:UPDATED", srljrpc.CommandValue("")}}, yms.OC, formats.TEXT, datastores.RUNNING, apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSCandidateDiffOnly},
 			`null`}, // should fail, bcz of unsupported datastore RUNNING
 		{"VALIDATE Request w/ SRL w/ TABLE w/ CANDIDATE",
 			[]srljrpc.PV{{"/interfaces/interface[name=mgmt0]/subinterfaces/subinterface[index=0]", srljrpc.CommandValue("ValueDelete_should_not_trigger_error")}},
