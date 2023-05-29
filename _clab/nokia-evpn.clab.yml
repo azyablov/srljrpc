@@ -9,15 +9,15 @@ topology:
 
   nodes:
 
-    spine1:
-      kind: srl
-      type: ixrd3
-      startup-config: ./configs/spine1_v23.3.1.cfg
+    # spine1:
+    #   kind: srl
+    #   type: ixrd3
+    #   startup-config: ./configs/spine1_v23.3.1.cfg
 
-    spine2:
-      kind: srl
-      type: ixrd3
-      startup-config: ./configs/spine2_v23.3.1.cfg
+    # spine2:
+    #   kind: srl
+    #   type: ixrd3
+    #   startup-config: ./configs/spine2_v23.3.1.cfg
 
     spine3:
       kind: srl
@@ -40,15 +40,15 @@ topology:
       type: ixrd2
       startup-config: ./configs/leaf2_v23.3.1.cfg
 
-    leaf3:
-      kind: srl
-      type: ixrd2
-      startup-config: ./configs/leaf3_v23.3.1.cfg
+    # leaf3:
+    #   kind: srl
+    #   type: ixrd2
+    #   startup-config: ./configs/leaf3_v23.3.1.cfg
 
-    leaf4:
-      kind: srl
-      type: ixrd2
-      startup-config: ./configs/leaf4_v23.3.1.cfg
+    # leaf4:
+    #   kind: srl
+    #   type: ixrd2
+    #   startup-config: ./configs/leaf4_v23.3.1.cfg
 
     client1:
       kind: linux
@@ -66,45 +66,45 @@ topology:
         - ip link set bond0.1 up
         - ip addr add 192.168.1.10/24 dev bond0.1
 
-    client2:
-      kind: linux
-      binds:
-        - ./configs/eth1.sh:/tmp/eth1.sh
-      exec:
-        - ip link add bond0 type bond
-        - ip link set bond0 type bond miimon 100 mode balance-rr
-        - ip link set eth1 down
-        - ip link set eth2 down
-        - ip link set eth1 master bond0
-        - ip link set eth2 master bond0
-        - ip link set bond0 up
-        - ip link add link bond0 name bond0.1 type vlan id 1
-        - ip link set bond0.1 up
-        - ip addr add 192.168.1.20/24 dev bond0.1
+    # client2:
+    #   kind: linux
+    #   binds:
+    #     - ./configs/eth1.sh:/tmp/eth1.sh
+    #   exec:
+    #     - ip link add bond0 type bond
+    #     - ip link set bond0 type bond miimon 100 mode balance-rr
+    #     - ip link set eth1 down
+    #     - ip link set eth2 down
+    #     - ip link set eth1 master bond0
+    #     - ip link set eth2 master bond0
+    #     - ip link set bond0 up
+    #     - ip link add link bond0 name bond0.1 type vlan id 1
+    #     - ip link set bond0.1 up
+    #     - ip addr add 192.168.1.20/24 dev bond0.1
 
   links:
 
-    - endpoints: ["spine1:e1-11", "leaf1:e1-51"]
-    - endpoints: ["spine1:e1-12", "leaf2:e1-51"]
-    - endpoints: ["spine1:e1-13", "leaf3:e1-51"]
-    - endpoints: ["spine1:e1-14", "leaf4:e1-51"]
+    # - endpoints: ["spine1:e1-11", "leaf1:e1-51"]
+    # - endpoints: ["spine1:e1-12", "leaf2:e1-51"]
+    # - endpoints: ["spine1:e1-13", "leaf3:e1-51"]
+    # - endpoints: ["spine1:e1-14", "leaf4:e1-51"]
 
-    - endpoints: ["spine2:e1-11", "leaf1:e1-52"]
-    - endpoints: ["spine2:e1-12", "leaf2:e1-52"]
-    - endpoints: ["spine2:e1-13", "leaf3:e1-52"]
-    - endpoints: ["spine2:e1-14", "leaf4:e1-52"]
+    # - endpoints: ["spine2:e1-11", "leaf1:e1-52"]
+    # - endpoints: ["spine2:e1-12", "leaf2:e1-52"]
+    # - endpoints: ["spine2:e1-13", "leaf3:e1-52"]
+    # - endpoints: ["spine2:e1-14", "leaf4:e1-52"]
 
     - endpoints: ["leaf1:e1-1", "client1:eth1"]
     - endpoints: ["leaf2:e1-1", "client1:eth2"]
-    - endpoints: ["leaf3:e1-1", "client2:eth1"]
-    - endpoints: ["leaf4:e1-1", "client2:eth2"]
+    # - endpoints: ["leaf3:e1-1", "client2:eth1"]
+    # - endpoints: ["leaf4:e1-1", "client2:eth2"]
 
     - endpoints: ["spine3:e1-11", "leaf1:e1-49"]
     - endpoints: ["spine3:e1-12", "leaf2:e1-49"]
-    - endpoints: ["spine3:e1-13", "leaf3:e1-49"]
-    - endpoints: ["spine3:e1-14", "leaf4:e1-49"]
+    # - endpoints: ["spine3:e1-13", "leaf3:e1-49"]
+    # - endpoints: ["spine3:e1-14", "leaf4:e1-49"]
     
     - endpoints: ["spine4:e1-11", "leaf1:e1-50"]
     - endpoints: ["spine4:e1-12", "leaf2:e1-50"]
-    - endpoints: ["spine4:e1-13", "leaf3:e1-50"]
-    - endpoints: ["spine4:e1-14", "leaf4:e1-50"]
+    # - endpoints: ["spine4:e1-13", "leaf3:e1-50"]
+    # - endpoints: ["spine4:e1-14", "leaf4:e1-50"]
