@@ -13,9 +13,11 @@ This document try to explore available without sophisticated scenarios like serv
 
 ## API workflow
 
-As usual for the sake of demo, we will use [Containerlab][clab] as brilliant network simulation tool and one of the standard labs published by SRL Labs [EVPN interoperability between SR Linux and SROS][evpn].
-How to bring this is up and used very well described while you following provided links.
-Our simple program will grow up each and every steps allowing to to have necessary grip with the subject API.
+For the sake of demo, we will use [Containerlab][clab] as brilliant network simulation tool and dedicated clab setup published together with JSON RPC package [lab][lab].
+The same virtual lab is used to perform integration testing as well as for client sample implementation.
+The setup can be ramped-up by using `sudo clab deploy` command.
+Our simple program will grow up each and every steps allowing to have necessary grip with the subject API.
+It does not pretend to be comprehensive, but overall should be easy to learn. Over the next releases we will further extend it based on users feedback.
 
 ### Client creation
 
@@ -28,17 +30,20 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/azyablov/srljrpc"
+	"github.com/azyablov/srljrpc/apierr"
 	"github.com/azyablov/srljrpc/formats"
+	"github.com/azyablov/srljrpc/yms"
 )
 
-
 var (
-	host = "clab-evpn-leaf1"
-	user = "admin"
-	pass = "admin"
-	port = 443
+	host   = "clab-evpn-leaf1"
+	user   = "admin"
+	pass   = "NokiaSrl1!"
+	port   = 443
+	hostOC = "clab-evpn-spine3"
 )
 
 func main() {
@@ -118,8 +123,9 @@ As soon as we submitted two xpath, we are getting two elements in the list of ``
 
 ```json
 Target hostname: leaf1
-Target system version: v22.6.2-24-g5e9fff1e5b
+Target system version: v23.3.1-343-gab924f2e64
 c.Get() example:
+================================================================================
 Response: [
   {
     "type": "srl_nokia-network-instance:mac-vrf",
@@ -197,6 +203,7 @@ So, you should see something more on top of already mentioned output.
 
 ```json
 c.State() example:
+================================================================================
 [
   {
     "admin-state": "enable",
@@ -209,7 +216,10 @@ c.State() example:
           "oper-state": "up",
           "use-authentication": true,
           "session-limit": 10,
-          "port": 80
+          "port": 80,
+          "source-address": [
+            "::"
+          ]
         },
         "https": {
           "admin-state": "enable",
@@ -217,7 +227,10 @@ c.State() example:
           "use-authentication": true,
           "session-limit": 10,
           "port": 443,
-          "tls-profile": "clab-profile"
+          "tls-profile": "clab-profile",
+          "source-address": [
+            "::"
+          ]
         }
       }
     ],
@@ -229,6 +242,7 @@ c.State() example:
     }
   }
 ]
+================================================================================
 
 ```
 
@@ -311,15 +325,247 @@ Console output should be altered by the following contents:
 If we would again query it we should get the following output, since commit was applied before (automatically by JSON RPC servers) and running configuration updated:
 
 ```json
+================================================================================
+c.Update()/Delete()/Replace() example:
+================================================================================
 [
   "UPDATE"
 ]
+================================================================================
 [
   {}
 ]
+================================================================================
 [
   "REPLACE"
 ]
+================================================================================
+[
+  {}
+]
+================================================================================
+[
+  {}
+]
+================================================================================
+[
+  {}
+]
+```
+
+Worth to mention, `BulkSetCandidate(delete []PV, replace []PV, update []PV, ym yms.EnumYmType) (*Response, error)` method.
+It allows you to combine delete, replace and update actions into the one SET request, so you can combine operations efficiently.
+YANG models namespace could be specified as well, where SRL corresponds to native models and OC to OpenConfig models.
+
+#### Tools 
+
+Well, let's imagine you need to clear BGP session or reset counters on interface.
+An example below provides with how to do it using `Tools()` method.
+
+```go
+  toolsResp, err := c.Tools(srljrpc.PV{
+		Path:  "/interface[name=ethernet-1/1]/ethernet/statistics/clear",
+		Value: srljrpc.CommandValue("")})
+	if err != nil {
+		panic(err)
+	}
+	outHelper(toolsResp.Result)
+``` 
+
+If request is correct and no mistakes you should not see anything special in output.
+
+```
+c.Tools() example:
+================================================================================
+[
+  {}
+]
+================================================================================
+```
+
+### Diff, OpenConfig yang-models and error handling
+
+Here we will consider number of examples to demonstrate ways to use `diff` method, OpenConfig models namespace and improved error handling.
+We will use OpenCOnfig, because by default RPC interface assumes SRL, and as such we got number of examples already.
+The first example demonstrates typical case of JSON RPC Error.
+
+``` go
+	pvs = []srljrpc.PV{
+		{Path: `/system/config/login-banner`, Value: "DELETE"},
+		{Path: `/interfaces/interface[name=mgmt0]/config/description`, Value: "REPLACE"},
+		{Path: `/interfaces/interface[name=ethernet-1/11]/subinterfaces/subinterface[index=0]/config/description`, Value: "UPDATE"},
+	}
+	bulkDiffResp, err := c.BulkDiffCandidate(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
+	if err != nil {
+		if cerr, ok := err.(apierr.ClientError); ok {
+			fmt.Printf("ClientError error: %s\n", cerr) // ClientError
+			if cerr.Code == apierr.ErrClntJSONRPC {     // We expect JSON RPC error here and checking via the message code.
+				outHelper(bulkDiffResp)
+				// Output supposed to be something like this:
+				// {
+				// 	"jsonrpc": "2.0",
+				// 	"id": 568258505525892051,
+				// 	"error": {
+				// 	  "id": 0,
+				// 	  "message": "Server down or restarting"
+				// 	}
+				//   }
+				// This is an indication OC is not supported on the target system, so we will use another target system spine3.
+			}
+		} else {
+			panic(err) // Unexpected outcome.
+		}
+	} else {
+		outHelper(bulkDiffResp.Result)
+	}
+```
+
+In the console you should see something similar to:
+
+```json
+================================================================================
+c.TestBulkDiffCandidate() example with error:
+================================================================================
+ClientError error: do: JSON-RPC error
+{
+  "jsonrpc": "2.0",
+  "id": 3198004165524188886,
+  "error": {
+    "id": 0,
+    "message": "Server down or restarting"
+  }
+}
+================================================================================
+```
+
+Out of the error message we can figure out that out target is not serving OpenConfig namespace, so we need to switch target (spine3 in our example).
+The next case demonstrates how to approach error handling provided by the module. 
+In order to keep necessary abstraction level, but allow diving deep into the root cause and allows extensive error handling automation.
+Idiomatic golang approach implemented with `Unwrap() error` method, while decision can be take based on the codes provided by  `ClientError` or `MessageError` object.
+`apierr` package is self-documented and provides quite extensive error codes footprint.
+```golang
+const (
+	ErrClntUndefined EnumCltErr = iota
+	ErrClntNoHost
+	ErrClntTargetVerification
+	ErrClntMarshalling
+	ErrClntHTTPReqCreation
+	ErrClntHTTPSend
+	ErrClntHTTPStatus
+// <omitted for brevity>
+)
+```
+
+Coming to our example...
+
+```go
+	pvs = []srljrpc.PV{
+		{Path: `/system/config/login-banner`, Value: "DELETE"},
+		{Path: `/interfaces/interface[name=mgmt0]/config/description`, Value: ""}, // Empty value will cause an error.
+		{Path: `/interfaces/interface[name=ethernet-1/11]/subinterfaces/subinterface[index=0]/config/description`, Value: "UPDATE"},
+	}
+	// Change target hostname to spine3, which supports OC.
+	// Create a new JSON RPC client with credentials and port (used 443 as default for the sake of demo).
+	cOC, err := srljrpc.NewJSONRPCClient(&hostOC, srljrpc.WithOptCredentials(&user, &pass), srljrpc.WithOptPort(&port))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Target hostname: %s\nTarget system version: %s\n", c.GetHostname(), c.GetSysVer())
+
+	bulkDiffResp, err = cOC.BulkDiffCandidate(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
+	if err != nil {
+		// Unwrapping error to investigate a root cause.
+		if cerr, ok := err.(apierr.ClientError); ok {
+			fmt.Printf("ClientError error: %s\n", cerr)                   // ClientError
+			for uerr := err.(apierr.ClientError).Unwrap(); uerr != nil; { // We expect ClientError here, so we can unwrap it.
+				fmt.Printf("Underlaying error: %s\n", uerr.Error())
+				if u2err, ok := uerr.(interface{ Unwrap() error }); ok {
+					uerr = u2err.Unwrap()
+				} else {
+					break
+				}
+			}
+		}
+		// }
+
+	} else {
+		outHelper(bulkDiffResp.Result)
+	}
+
+```
+
+And finally output demonstrates two nested errors...
+
+
+```
+================================================================================
+c.TestBulkDiffCandidate() example with error:
+================================================================================
+ClientError error: bulkDiffCandidate: RPC request creation error
+Underlaying error: newRequest(): error adding commands in request
+Underlaying error: value isn't specified or not found in the path for method diff
+```
+
+After corrections made, we should have our code executed without errors.
+
+```golang
+	// Adding changes into PV pairs to fix our artificial error and do things right ))
+	pvs = []srljrpc.PV{
+		{Path: `/system/config/login-banner`, Value: "DELETE"},
+		{Path: `/interfaces/interface[name=mgmt0]/config/description`, Value: "REPLACE"},
+		{Path: `/interfaces/interface[name=ethernet-1/11]/subinterfaces/subinterface[index=0]/config/description`, Value: "UPDATE"},
+	}
+
+	bulkDiffResp, err = cOC.BulkDiffCandidate(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
+	if err != nil {
+		outHelper(bulkDiffResp)
+		panic(err)
+	}
+	// Parsing JSON response to get the message.
+	var data []interface{}
+	err = json.Unmarshal(bulkDiffResp.Result, &data)
+	if err != nil {
+		fmt.Println("Error parsing JSON:", err)
+	}
+	message := data[0].(string)
+	fmt.Println(message)
+```
+
+
+```json
+c.TestBulkDiffCandidate() example w/o error:
+================================================================================
+  {
+    "interfaces": {
+      "interface": [
+        {
+          "name": "ethernet-1/11",
+          "subinterfaces": {
+            "subinterface": [
+              {
+                "index": 0,
+                "config": {
+-                 "description": "to_leaf1"
++                 "description": "UPDATE"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "mgmt0",
+          "config": {
++           "description": "REPLACE"
+          }
+        }
+      ]
+    },
+    "system": {
+      "config": {
+-       "login-banner": "................................................................\n:                  Welcome to Nokia SR Linux!                  :\n:              Open Network OS for the NetOps era.             :\n:                                                              :\n:    This is a freely distributed official container image.    :\n:                      Use it - Share it                       :\n:                                                              :\n: Get started: https://learn.srlinux.dev                       :\n: Container:   https://go.srlinux.dev/container-image          :\n: Docs:        https://doc.srlinux.dev/23-3                    :\n: Rel. notes:  https://doc.srlinux.dev/rn23-3-1                :\n: YANG:        https://yang.srlinux.dev/v23.3.1                :\n: Discord:     https://go.srlinux.dev/discord                  :\n: Contact:     https://go.srlinux.dev/contact-sales            :\n................................................................\n"
+      }
+    }
+  }
 ```
 
 
@@ -361,7 +607,9 @@ As easy to see number of line of code remains +/- stable in terms of getting nec
 ```
 
 ```json
+================================================================================
 c.CLI() example:
+================================================================================
 [
   {
     "basic system info": {
@@ -369,13 +617,13 @@ c.CLI() example:
       "Chassis Type": "7220 IXR-D2",
       "Part Number": "Sim Part No.",
       "Serial Number": "Sim Serial No.",
-      "System HW MAC Address": "1A:B8:02:FF:00:00",
-      "Software Version": "v22.6.2",
-      "Build Number": "24-g5e9fff1e5b",
+      "System HW MAC Address": "1A:0B:01:FF:00:00",
+      "Software Version": "v23.3.1",
+      "Build Number": "343-gab924f2e64",
       "Architecture": "x86_64",
-      "Last Booted": "2023-04-23T18:42:30.977Z",
+      "Last Booted": "2023-05-29T09:07:32.174Z",
       "Total Memory": "23640339 kB",
-      "Free Memory": "7673355 kB"
+      "Free Memory": "7898847 kB"
     }
   },
   {
@@ -403,6 +651,7 @@ c.CLI() example:
     ]
   }
 ]
+================================================================================
 ```
 ```sh
 +---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+
@@ -418,9 +667,12 @@ c.CLI() example:
 +---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+---------------------------+
 ```
 
+
+
+
 All examples provided in this document can be found in [repository][samples] with SR Linux JSON RPC library samples.
 
 
 [clab]: https://containerlab.dev
-[evpn]: https://github.com/srl-labs/nokia-evpn-lab
+[lab]: https://github.com/azyablov/srljrpc/tree/main/_clab
 [samples]: https://github.com/azyablov/srljrpc_client_example
