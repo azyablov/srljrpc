@@ -107,7 +107,7 @@ func Test_withPathKeywords(t *testing.T) {
 	}
 
 	err := mockGetCmd.withPathKeywords([]byte(`{"name": "mgmt0", "name1": "mgmt1", "name2" "mgmt2"}`))
-	t.Logf("expected error: %s", err)
+	//t.Logf("expected error: %s", err)
 	if err == nil {
 		t.Fatalf("expected error 'failed to unmarshal path-keywords', got nil")
 	}
