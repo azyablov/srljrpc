@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/azyablov/srljrpc"
 	"github.com/azyablov/srljrpc/actions"
@@ -275,6 +276,7 @@ func TestUpdate(t *testing.T) {
 	var setTestData = []struct {
 		testName string
 		pvs      []srljrpc.PV
+		ct       int
 		expErr   error
 	}{
 		{testName: "Set Update against CANDIDATE datastore with default target",
@@ -282,11 +284,13 @@ func TestUpdate(t *testing.T) {
 				{"/interface[name=system0]/description", srljrpc.CommandValue("test")},
 				{"/interface[name=mgmt0]/description", srljrpc.CommandValue("MGMT")},
 			},
+			ct:     0,
 			expErr: nil,
 		}, // should succeed
 		{testName: "Set Update against CANDIDATE datastore with default target and invalid path",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/invalid", srljrpc.CommandValue("test")}},
+			ct: 0,
 			expErr: apierr.ClientError{
 				CltFunction: "Do",
 				Code:        apierr.ErrClntJSONRPC},
@@ -294,14 +298,23 @@ func TestUpdate(t *testing.T) {
 		{testName: "Set Update against CANDIDATE datastore with default target and missed value",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")}},
+			ct: 0,
 			expErr: apierr.ClientError{
 				CltFunction: "Update",
 				Code:        apierr.ErrClntRPCReqCreation},
 		}, // should fail, missed value
+		{testName: "Set Update against CANDIDATE datastore with default target and confirm timeout",
+			pvs: []srljrpc.PV{
+				{"/interface[name=system0]/description", srljrpc.CommandValue("test_CT_22")}, // after timeout should be "test", as per test 0.
+				{"/interface[name=mgmt0]/description", srljrpc.CommandValue("MGMT_CT_22")},   // after timeout should be "MGMT", as per test 0.
+			},
+			ct:     5,
+			expErr: nil,
+		}, // should succeed with w/ confirm timeout
 	}
-	for _, td := range setTestData {
+	for n, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Update(td.pvs...)
+			_, err := c.Update(td.ct, td.pvs...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -315,11 +328,53 @@ func TestUpdate(t *testing.T) {
 			default:
 				t.Errorf("got: %s, while should be: %s", err, td.expErr)
 			}
+			if n == 3 { // test with confirm timeout
+				t.Logf("Set Update against CANDIDATE datastore with default target and confirm timeout => Waiting for 1 seconds...")
+				time.Sleep(1 * time.Second)
+				ctResp, err := c.Get("/interface[name=system0]/description", "/interface[name=mgmt0]/description")
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Unmarshal response
+				var ctRespData []string
+				err = json.Unmarshal(ctResp.Result, &ctRespData)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Check if values are updated
+				if ctRespData[0] != "test_CT_22" {
+					t.Errorf("got: %s, while should be: %s", ctRespData[0], "test_CT_22")
+				}
+				if ctRespData[1] != "MGMT_CT_22" {
+					t.Errorf("got: %s, while should be: %s", ctRespData[1], "MGMT_CT_22")
+				}
+				// t.Log(ctRespData)
+				t.Logf("Set Update against CANDIDATE datastore with default target and confirm timeout => Waiting for 5 seconds...")
+				time.Sleep(5 * time.Second)
+				ctResp, err = c.Get("/interface[name=system0]/description", "/interface[name=mgmt0]/description")
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Unmarshal response
+				err = json.Unmarshal(ctResp.Result, &ctRespData)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Check if values are updated
+				if ctRespData[0] != "test" {
+					t.Errorf("got: %s, while should be: %s", ctRespData[0], "test")
+				}
+				if ctRespData[1] != "MGMT" {
+					t.Errorf("got: %s, while should be: %s", ctRespData[1], "MGMT")
+				}
+				// t.Log(ctRespData)
+			}
 		})
 	}
+
 }
 
-func TestBulkSetCandidate(t *testing.T) {
+func TestBulkSet(t *testing.T) {
 	// Get OC client
 	c := helperGetOCClient(t)
 	// Test data
@@ -377,7 +432,7 @@ func TestBulkSetCandidate(t *testing.T) {
 	}
 	for _, td := range setOCTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.BulkSetCandidate(td.delete, td.replace, td.update, yms.OC)
+			_, err := c.BulkSet(td.delete, td.replace, td.update, yms.OC, 0) // ct set to 0 to avoid confirm timeout
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -448,7 +503,7 @@ func TestBulkSetCandidate(t *testing.T) {
 	}
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.BulkSetCandidate(td.delete, td.replace, td.update, yms.SRL)
+			_, err := c.BulkSet(td.delete, td.replace, td.update, yms.SRL, 0) // ct set to 0 to avoid confirm timeout
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -467,7 +522,152 @@ func TestBulkSetCandidate(t *testing.T) {
 
 }
 
-func TestBulkDiffCandidate(t *testing.T) {
+func TestBulkSetCallBack(t *testing.T) {
+	// Get SRL client
+	c := helperGetDefClient(t)
+	// Test data
+	var setTestData = []struct {
+		testName string
+		delete   []srljrpc.PV
+		replace  []srljrpc.PV
+		update   []srljrpc.PV
+		expErr   error
+		cbf      srljrpc.CallBackConfirm
+	}{
+		{testName: "Set Update w/ confirm timeout and CallBackConfirm true against CANDIDATE datastore with SRL default target",
+			delete:  []srljrpc.PV{},
+			replace: []srljrpc.PV{},
+			update: []srljrpc.PV{
+				{"/interface[name=system0]/description", srljrpc.CommandValue("System loopback")},
+			},
+			expErr: nil,
+			cbf: func(req *srljrpc.Request, resp *srljrpc.Response) (bool, error) {
+				// For debug purposes only
+				// b, err := json.Marshal(req)
+				// if err != nil {
+				// 	t.Fatal(err)
+				// }
+				// t.Log(string(b))
+				// b, err = json.Marshal(resp)
+				// if err != nil {
+				// 	t.Fatal(err)
+				// }
+				// t.Log(string(b))
+				return true, nil
+			}}, // should succeed w/ commit confirmed via tools
+		{testName: "Set Replace w/ confirm timeout and CallBackConfirm false against CANDIDATE datastore with SRL default target",
+			delete: []srljrpc.PV{},
+			replace: []srljrpc.PV{
+				{"/interface[name=system0]/description", srljrpc.CommandValue("System loopback")},
+			},
+			update: []srljrpc.PV{},
+			expErr: nil,
+			cbf: func(req *srljrpc.Request, resp *srljrpc.Response) (bool, error) {
+				// For debug purposes only
+				// b, err := json.Marshal(req)
+				// if err != nil {
+				// 	t.Fatal(err)
+				// }
+				// t.Log(string(b))
+				// b, err = json.Marshal(resp)
+				// if err != nil {
+				// 	t.Fatal(err)
+				// }
+				// t.Log(string(b))
+				return false, nil
+			}}, // should succeed w/ rollback
+	}
+
+	for n, td := range setTestData {
+		t.Run(td.testName, func(t *testing.T) {
+			// Set reference values, should not fail
+			_, err := c.BulkSet([]srljrpc.PV{}, []srljrpc.PV{}, []srljrpc.PV{{"/interface[name=system0]/description", srljrpc.CommandValue("Initial Value")}}, yms.SRL, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			chResp := make(chan *srljrpc.Response)
+			chErr := make(chan error)
+			go func() {
+				resp, err := c.BulkSetCallBack(td.delete, td.replace, td.update, yms.SRL, 5, 3, td.cbf)
+
+				chResp <- resp
+				chErr <- err
+			}()
+
+			switch n {
+			case 0: // test with confirm timeout and CallBackConfirm returning true.
+				var ctRespData []string
+				t.Logf("Set Update w/ confirm timeout and CallBackConfirm true against CANDIDATE datastore with SRL default target => Waiting for 6 seconds...")
+				time.Sleep(6 * time.Second)
+				ctResp, err := c.Get("/interface[name=system0]/description")
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Unmarshal response
+				err = json.Unmarshal(ctResp.Result, &ctRespData)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Check if values are updated
+				if ctRespData[0] != "System loopback" {
+					t.Errorf("got: %s, while should be: %s", ctRespData[0], "System loopback")
+				}
+				resp := <-chResp
+				if resp == nil { // should be non-nil, as CallBackConfirm returned true.
+					t.Errorf("got: %v, while should be: %s", resp, "non-nil")
+					break
+				}
+				b, err := json.Marshal(resp.Error)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Log(string(b))
+				// t.Log(ctRespData)
+			case 1: // test with confirm timeout and CallBackConfirm returning false.
+				var ctRespData []string
+				t.Logf("Set Replace w/ confirm timeout and CallBackConfirm false against CANDIDATE datastore with SRL default target => Waiting for 6 seconds...")
+				time.Sleep(6 * time.Second)
+				ctResp, err := c.Get("/interface[name=system0]/description")
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Unmarshal response
+				err = json.Unmarshal(ctResp.Result, &ctRespData)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Check if values are rolled back
+				if ctRespData[0] != "Initial Value" {
+					t.Errorf("got: %s, while should be: %s", ctRespData[0], "Initial Value")
+				}
+				resp := <-chResp
+				if resp != nil { // should be nil, as CallBackConfirm returned false.
+					t.Errorf("got: %v, while should be: %s", resp, "nil")
+
+				}
+			}
+			// Getting error from channel.
+			err = <-chErr
+			switch {
+			case err == nil && td.expErr == nil:
+			case err != nil && td.expErr != nil:
+				if err.Error() != td.expErr.Error() {
+					t.Errorf("got: %s, while should be: %v", err, td.expErr)
+				}
+			case err == nil && td.expErr != nil:
+				t.Errorf("got: %v, while should be: %s", err, td.expErr)
+			case err != nil && td.expErr == nil:
+				t.Errorf("got: %s, while should be: %s", err, td.expErr)
+			default:
+				t.Errorf("got: %s, while should be: %s", err, td.expErr)
+			}
+		})
+	}
+
+}
+
+func TestBulkDiff(t *testing.T) {
 	// Get OC client
 	c := helperGetOCClient(t)
 	// Test data
@@ -525,7 +725,7 @@ func TestBulkDiffCandidate(t *testing.T) {
 	}
 	for _, td := range setOCTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.BulkDiffCandidate(td.delete, td.replace, td.update, yms.OC)
+			_, err := c.BulkDiff(td.delete, td.replace, td.update, yms.OC)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -596,7 +796,7 @@ func TestBulkDiffCandidate(t *testing.T) {
 	}
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.BulkDiffCandidate(td.delete, td.replace, td.update, yms.SRL)
+			_, err := c.BulkDiff(td.delete, td.replace, td.update, yms.SRL)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -639,7 +839,7 @@ func TestReplace(t *testing.T) {
 	}
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Replace(td.pvs...)
+			_, err := c.Replace(0, td.pvs...)
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -681,7 +881,7 @@ func TestDelete(t *testing.T) {
 	}
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
-			_, err := c.Delete(td.paths...)
+			_, err := c.Delete(0, td.paths...) // ct set to 0 to avoid confirm timeout
 			switch {
 			case err == nil && td.expErr == nil:
 			case err != nil && td.expErr != nil:
@@ -962,6 +1162,8 @@ func helperGetOCClient(t *testing.T) *srljrpc.JSONRPCClient {
 
 	c, err := srljrpc.NewJSONRPCClient(&ocIP.Host, srljrpc.WithOptCredentials(&ocIP.Username, &ocIP.Password), srljrpc.WithOptPort(&ocIP.Port))
 	if err != nil {
+		uerr := err.(apierr.ClientError).Unwrap().Error()
+		t.Logf(uerr)
 		t.Fatalf("can't create client: %v", err)
 	}
 	return c
