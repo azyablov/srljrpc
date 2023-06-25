@@ -32,6 +32,8 @@ func TestNewRequest_Get(t *testing.T) {
 		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOption{srljrpc.WithDatastore(datastores.TOOLS)}},                                                     // should fail, bcz of datastore
 		{actions.NONE, "", srljrpc.CommandValue(""), nil},                                                                                                                                        // should fail, bcz of empty path
 		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOption{srljrpc.WithDefaults(), srljrpc.WithoutRecursion(), srljrpc.WithDatastore(datastores.STATE)}}, // should fail due to unsupported datastore TOOLS
+		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue(""), nil},                                                                                                                  // should succeed
+		{actions.NONE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOption{srljrpc.WithDefaults(), srljrpc.WithoutRecursion(), srljrpc.WithDatastore(datastores.STATE)}}, // command is ok, but should fail due to unsupported confirm timeout
 	}
 	cmdResults := []*srljrpc.Command{}
 
@@ -60,6 +62,7 @@ func TestNewRequest_Get(t *testing.T) {
 		{"Basic GET with command TOOLS datastore", cmdResults[4], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
 		{"Basic GET with empty path", cmdResults[5], apierr.MessageError{MsgFunction: "NewRequest", Code: apierr.ErrMsgReqAddingCmds}, `null`, []srljrpc.RequestOption{}},
 		{"Basic GET with request TOOLS datastore", cmdResults[6], apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgReqGetDSNotAllowed}, `null`, []srljrpc.RequestOption{srljrpc.WithRequestDatastore(datastores.TOOLS)}},
+		{"Basic GET", cmdResults[0], apierr.MessageError{MsgFunction: "WithConfirmTimeout", Code: apierr.ErrMsgReqSettingConfirmTimeout}, `null`, []srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.JSON), srljrpc.WithConfirmTimeout(5)}},
 	}
 
 	for _, td := range testData {
@@ -205,6 +208,7 @@ func TestNewRequest_Set(t *testing.T) {
 		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdateTEXTSRL"), []srljrpc.CommandOption{}},                                       // should succeed
 		{actions.REPLACE, "/system/name/host-name", srljrpc.CommandValue("SetReplaceRUNNING"), []srljrpc.CommandOption{}},                                     // should fail because of RUNNING datastore specified.
 		{actions.UPDATE, "/system/name/host-name", srljrpc.CommandValue("SetUpdateTEXTSRL"), []srljrpc.CommandOption{}},                                       // should succeed
+		{actions.DELETE, "/system/name/host-name", srljrpc.CommandValue(""), []srljrpc.CommandOption{}},                                                       // should succeed
 	}
 	cmdResults := []*srljrpc.Command{}
 
@@ -245,6 +249,9 @@ func TestNewRequest_Set(t *testing.T) {
 		{"Basic SET UPDATE output format TEXT, datastore TOOLS and ym OC", cmdResults[14], nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","value":"SetUpdateTEXTSRL","action":"update"}],"output-format":"table","datastore":"tools","yang-models":"oc"}}`,
 			[]srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.TABLE), srljrpc.WithYmType(yms.OC), srljrpc.WithRequestDatastore(datastores.TOOLS)}},
+		{"Basic SET DELETE output format TEXT with confirm timeout, datastore CANDIDATE and ym OC", cmdResults[15], nil,
+			`{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","action":"delete"}],"output-format":"table","datastore":"candidate","yang-models":"oc","confirm-timeout":22}}`,
+			[]srljrpc.RequestOption{srljrpc.WithOutputFormat(formats.TABLE), srljrpc.WithYmType(yms.OC), srljrpc.WithRequestDatastore(datastores.CANDIDATE), srljrpc.WithConfirmTimeout(22)}}, // with new confirm timeout
 	}
 
 	for _, td := range testData {
@@ -297,7 +304,6 @@ func TestNewRequest_Set(t *testing.T) {
 }
 
 func TestNewSetRequest(t *testing.T) {
-	//m := "set"
 	testData := []struct {
 		testName  string
 		delete    []srljrpc.PV
@@ -306,43 +312,44 @@ func TestNewSetRequest(t *testing.T) {
 		ym        yms.EnumYmType
 		of        formats.EnumOutputFormats
 		ds        datastores.EnumDatastores
+		ct        int
 		expReqErr error
 		tmplJSON  string
 	}{
 		{"SET Request w/ SRL w/ JSON w/ CANDIDATE",
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Delete")}},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Replace")}},
-			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Update")}}, yms.SRL, formats.JSON, datastores.CANDIDATE, nil,
+			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Update")}}, yms.SRL, formats.JSON, datastores.CANDIDATE, 0, nil,
 			`{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/system/name/host-name","action":"delete"},{"path":"/system/name/host-name","value":"Replace","action":"replace"},{"path":"/system/name/host-name","value":"Update","action":"update"}],"output-format":"json","datastore":"candidate","yang-models":"srl"}}`}, // should succeed
 		{"SET Request w/ OC w/ TEXT w/ TOOLS",
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Delete")}},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Replace")}},
-			[]srljrpc.PV{{"/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer", srljrpc.CommandValue("Update")}}, yms.OC, formats.TEXT, datastores.TOOLS,
+			[]srljrpc.PV{{"/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer", srljrpc.CommandValue("Update")}}, yms.OC, formats.TEXT, datastores.TOOLS, 0,
 			apierr.MessageError{MsgFunction: "newSetRequest", Code: apierr.ErrMsgSetNotAllowedActForTools},
 			`null`}, // should fail, bcz of unsupported datastore TOOLS
 		{"SET Request w/ SRL w/ TABLE w/ RUNNING",
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Delete")}},
 			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Replace")}},
-			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Update")}}, yms.SRL, formats.TABLE, datastores.RUNNING,
+			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("Update")}}, yms.SRL, formats.TABLE, datastores.RUNNING, 0,
 			apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSToolsCandidateSetOnly},
 			`null`}, // should fail, bcz of unsupported datastore RUNNING
 		{"SET Request w/ OC w/ TEXT w/ CANDIDATE",
 			[]srljrpc.PV{},
 			[]srljrpc.PV{},
-			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("")}}, yms.SRL, formats.JSON, datastores.CANDIDATE,
+			[]srljrpc.PV{{"/system/name/host-name", srljrpc.CommandValue("")}}, yms.SRL, formats.JSON, datastores.CANDIDATE, 0,
 			apierr.MessageError{MsgFunction: "WithRequestDatastore", Code: apierr.ErrMsgDSCandidateUpdateNoValue},
 			`null`}, // should fail, bcz UPDATE action should have value for CANDIDATE datastore
 		{"SET Request w/ SRL w/ JSON w/ TOOLS",
 			[]srljrpc.PV{},
 			[]srljrpc.PV{},
-			[]srljrpc.PV{{"/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer", srljrpc.CommandValue("")}}, yms.SRL, formats.JSON, datastores.TOOLS, nil,
-			`{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer","action":"update"}],"output-format":"json","datastore":"tools","yang-models":"srl"}}`}, // should succeed, bcz UPDATE action value is optional for TOOLS datastore
-
+			[]srljrpc.PV{{"/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer", srljrpc.CommandValue("")}}, yms.SRL, formats.JSON, datastores.TOOLS, 22, nil,
+			`{"jsonrpc":"2.0","id":{{.}},"method":"set","params":{"commands":[{"path":"/network-instance[name=default]/protocols/bgp/neighbor[peer-address=100.24.11.1]/reset-peer","action":"update"}],"output-format":"json","datastore":"tools","yang-models":"srl","confirm-timeout":22}}`},
+		// should succeed, bcz UPDATE action value is optional for TOOLS datastore. With new confirm timeout.
 	}
 
 	for _, td := range testData {
 		t.Run(td.testName, func(t *testing.T) {
-			r, err := srljrpc.NewSetRequest(td.delete, td.replace, td.update, td.ym, td.of, td.ds)
+			r, err := srljrpc.NewSetRequest(td.delete, td.replace, td.update, td.ym, td.of, td.ds, td.ct)
 			switch {
 			case err == nil && td.expReqErr == nil:
 			case err != nil && td.expReqErr != nil:
