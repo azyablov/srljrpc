@@ -34,6 +34,9 @@ const (
 	ErrClntTLSLoadCAPEM
 	ErrClntTLSLoadCertPair
 	ErrClntTLSCertParsing
+	ErrClntCBFuncLowerThanCT
+	ErrClntCBFuncIsNil
+	ErrClntCBFuncExec
 )
 
 const (
@@ -55,11 +58,13 @@ const (
 	ErrMsgDSCandidateValidateOnly
 	ErrMsgDSCandidateDiffOnly
 	ErrMsgDSSpecNotAllowedForUnknownMethod
-	ErrMsgCLISettingMethod    // Contains underlying error.
-	ErrMsgCLIAddingCmdsInReq  // Contains underlying error.
-	ErrMsgCLISettingOutFormat // Contains underlying error.
-	ErrMsgCLIMarshalling      // Contains underlying error.
-	ErrMsgRespMarshalling     // Contains underlying error.
+	ErrMsgCLISettingMethod         // Contains underlying error.
+	ErrMsgCLIAddingCmdsInReq       // Contains underlying error.
+	ErrMsgCLISettingOutFormat      // Contains underlying error.
+	ErrMsgCLIMarshalling           // Contains underlying error.
+	ErrMsgRespMarshalling          // Contains underlying error.
+	ErrMsgReqSettingConfirmTimeout // Contains underlying error.
+	ErrMsgReqSettingDSParams       // Contains underlying error.
 )
 
 type ClientError struct {
@@ -118,6 +123,12 @@ func (e ClientError) Error() string {
 		m = "can't load PEM file for certificate / key pair"
 	case ErrClntTLSCertParsing:
 		m = "certificate parsing error"
+	case ErrClntCBFuncLowerThanCT:
+		m = "callback timeout must be lower than confirm timeout"
+	case ErrClntCBFuncIsNil:
+		m = "callback function is nil"
+	case ErrClntCBFuncExec:
+		m = "callback function execution error"
 	default:
 		m = "incorrect code error"
 	}
@@ -201,6 +212,10 @@ func (e MessageError) Error() string {
 		m = "marshalling error"
 	case ErrMsgRespMarshalling:
 		m = "marshalling error"
+	case ErrMsgReqSettingConfirmTimeout:
+		m = "error setting confirm timeout"
+	case ErrMsgReqSettingDSParams:
+		m = "error setting datastore parameters, check underlying error"
 	default:
 		m = "incorrect code error"
 	}
