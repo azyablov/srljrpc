@@ -15,7 +15,7 @@ This document try to explore available without sophisticated scenarios like serv
 
 For the sake of demo, we will use [Containerlab][clab] as brilliant network simulation tool and dedicated clab setup published together with JSON RPC package [lab][lab].
 The same virtual lab is used to perform integration testing as well as for client sample implementation.
-The setup can be ramped-up by using `sudo clab deploy` command.
+The setup can be ramped-up by using `cd _clab` followed by `sudo clab deploy` command.
 Our simple program will grow up each and every steps allowing to have necessary grip with the subject API.
 It does not pretend to be comprehensive, but overall should be easy to learn. Over the next releases we will further extend it based on users feedback.
 
