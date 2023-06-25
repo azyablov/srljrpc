@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/azyablov/srljrpc/actions"
@@ -52,6 +53,7 @@ type JSONRPCClient struct {
 	hostname string
 	sysVer   string
 	target   *JSONRPCTarget
+	mux      sync.Mutex
 }
 
 // PV type to represent a path-value pair.
@@ -62,6 +64,10 @@ type PV struct {
 
 // ClientOption is a function type that applies options to a JSONRPCClient object.
 type ClientOption func(*JSONRPCClient) error
+
+// CallBackConfirm type to represent a callback function to confirm a request.
+// In case of confirm commit must return true, otherwise false.
+type CallBackConfirm func(req *Request, resp *Response) (bool, error)
 
 // Creates a new JSON RPC client and applies options in order of appearance.
 func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error) {
@@ -131,7 +137,6 @@ func (c *JSONRPCClient) GetHostname() string {
 func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	body, err := r.Marshal()
 	if err != nil {
-		//return nil, err
 		return nil, apierr.ClientError{
 			CltFunction: "Do",
 			Code:        apierr.ErrClntMarshalling,
@@ -251,8 +256,10 @@ func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
 	return c.Do(r)
 }
 
-// SetUpdate method of JSONRPCClient. Executes a SET/UPDATE action request against CANDIDATE datastore. Yang model type is default(SRL).
-func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
+// SetUpdate method of JSONRPCClient executing a SET/UPDATE action request against CANDIDATE datastore.
+// ct is the timeout in seconds for the confirm operation, set to 0 to disable.
+// pvs is the list of path-value pairs. Yang model type is default(SRL).
+func (c *JSONRPCClient) Update(ct int, pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
@@ -266,7 +273,15 @@ func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 
 		cmds = append(cmds, cmd)
 	}
-	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
+
+	// build the request
+	var r *Request
+	var err error
+	if ct == 0 {
+		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
+	} else {
+		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE), WithConfirmTimeout(ct))
+	}
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Update",
@@ -277,8 +292,10 @@ func (c *JSONRPCClient) Update(pvs ...PV) (*Response, error) {
 	return c.Do(r)
 }
 
-// SetReplace method of JSONRPCClient. Executes a SET/REPLACE action request against CANDIDATE datastore. Yang model type is default(SRL).
-func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
+// SetReplace method of JSONRPCClient. Executes a SET/REPLACE action request against CANDIDATE datastore.
+// ct is the timeout in seconds for the confirm operation, set to 0 to disable.
+// pvs is the list of path-value pairs. Yang model type is default(SRL).
+func (c *JSONRPCClient) Replace(ct int, pvs ...PV) (*Response, error) {
 	var cmds []*Command
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.REPLACE, pv.Path, pv.Value)
@@ -292,7 +309,15 @@ func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 
 		cmds = append(cmds, cmd)
 	}
-	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
+
+	// build the request
+	var r *Request
+	var err error
+	if ct == 0 {
+		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
+	} else {
+		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE), WithConfirmTimeout(ct))
+	}
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Replace",
@@ -303,8 +328,10 @@ func (c *JSONRPCClient) Replace(pvs ...PV) (*Response, error) {
 	return c.Do(r)
 }
 
-// SetDelete method of JSONRPCClient. Executes a SET/DELETE action request against CANDIDATE datastore. Yang model type is default(SRL).
-func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
+// SetDelete method of JSONRPCClient. Executes a SET/DELETE action request against CANDIDATE datastore.
+// t is the timeout in seconds for the confirm operation, set to 0 to disable.
+// paths is the list of path to delete. Yang model type is default(SRL).
+func (c *JSONRPCClient) Delete(ct int, paths ...string) (*Response, error) {
 	// build the commands
 	var cmds []*Command
 	for _, path := range paths {
@@ -321,7 +348,13 @@ func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 	}
 
 	// build the request
-	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
+	var r *Request
+	var err error
+	if ct == 0 {
+		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE))
+	} else {
+		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE), WithConfirmTimeout(ct))
+	}
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "Delete",
@@ -333,17 +366,17 @@ func (c *JSONRPCClient) Delete(paths ...string) (*Response, error) {
 }
 
 // DiffCandidate method of JSONRPCClient. Executes a DIFF/<action> action request against CANDIDATE datastore. Yang model type is default(SRL).
-// The action parameter must be one of DELETE, REPLACE, or UPDATE.
-func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmType, pv ...PV) (*Response, error) {
+// pvs are path-value pairs. The action parameter must be one of DELETE, REPLACE, or UPDATE.
+func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmType, pvs ...PV) (*Response, error) {
 	var delete, replace, update []PV
 	// identify the action
 	switch action {
 	case actions.DELETE:
-		delete = pv
+		delete = pvs
 	case actions.REPLACE:
-		replace = pv
+		replace = pvs
 	case actions.UPDATE:
-		update = pv
+		update = pvs
 	case actions.NONE:
 		return nil, apierr.ClientError{
 			CltFunction: "DiffCandidate",
@@ -369,10 +402,11 @@ func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmT
 }
 
 // Bulk CRUD method of JSONRPCClient. Executes a SET method with REPLACE/UPDATE/DELETE action request against CANDIDATE datastore.
-// yang model type is mandatory for diff to specify: SRL or OC.
-func (c *JSONRPCClient) BulkSetCandidate(delete []PV, replace []PV, update []PV, ym yms.EnumYmType) (*Response, error) {
+// ct is the timeout in seconds for the confirm operation, set to 0 to disable. delete/replace/update are path-value pairs.
+// All the PVs are applied immediately in the same order as they are provided. yang model type is mandatory for diff to specify: SRL or OC.
+func (c *JSONRPCClient) BulkSet(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, ct int) (*Response, error) {
 	// build the request
-	r, err := NewSetRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
+	r, err := NewSetRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE, ct)
 	if err != nil {
 		return nil, apierr.ClientError{
 			CltFunction: "BulkSetCandidate",
@@ -383,9 +417,70 @@ func (c *JSONRPCClient) BulkSetCandidate(delete []PV, replace []PV, update []PV,
 	return c.Do(r)
 }
 
+// Bulk CRUD method of JSONRPCClient w/ CallBackConfirm callback and mandatory confirm timeout.
+// Executes a SET method with REPLACE/UPDATE/DELETE action request against CANDIDATE datastore.
+// All the PVs are applied immediately in the same order as they are provided. yang model type is mandatory for diff to specify: SRL or OC.
+// JSON RPC Response is not nil if the callback function returns true. if callback function returns false, the both response&error are nil to indicate changes rolled back and NE back to previous state.
+func (c *JSONRPCClient) BulkSetCallBack(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, ct int, cbt int, cbf CallBackConfirm) (*Response, error) {
+	// check cbt is lower than ct anc ct > 0 (mandatory)
+	if ct <= cbt+1 && ct > 0 { // +1 to avoid 0
+		return nil, apierr.ClientError{
+			CltFunction: "BulkSetCallBack",
+			Code:        apierr.ErrClntCBFuncLowerThanCT,
+			Err:         nil,
+		}
+	}
+	// check if the callback is nil
+	if cbf == nil {
+		return nil, apierr.ClientError{
+			CltFunction: "BulkSetCallBack",
+			Code:        apierr.ErrClntCBFuncIsNil,
+			Err:         nil,
+		}
+	}
+	// build the request
+	req, err := NewSetRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE, ct)
+	if err != nil {
+		return nil, apierr.ClientError{
+			CltFunction: "BulkSetCallBack",
+			Code:        apierr.ErrClntRPCReqCreation,
+			Err:         err,
+		}
+	}
+	// execute the request
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	resp, err := c.Do(req)
+	if err != nil {
+		return resp, err
+	}
+
+	if ct-cbt > 2 {
+		tch := time.After(time.Duration(cbt) * time.Second)
+		<-tch
+	}
+	// execute the callback
+	confirm, err := cbf(req, resp)
+	if err != nil {
+		return nil, apierr.ClientError{
+			CltFunction: "BulkSetCallBack",
+			Code:        apierr.ErrClntCBFuncExec,
+			Err:         err,
+		}
+	}
+	if confirm {
+		_, err := c.Tools(PV{Path: "/system/configuration/confirmed-accept", Value: CommandValue("")})
+		if err != nil {
+			return nil, err
+		}
+		return resp, nil
+	}
+	return nil, nil
+}
+
 // Bulk CRUD method of JSONRPCClient. Executes a DIFF method with REPLACE/UPDATE/DELETE action request against CANDIDATE datastore.
-// yang model type is mandatory for diff to specify: SRL or OC.
-func (c *JSONRPCClient) BulkDiffCandidate(delete []PV, replace []PV, update []PV, ym yms.EnumYmType) (*Response, error) {
+// delete/replace/update are path-value pairs. yang model type is mandatory for diff to specify: SRL or OC.
+func (c *JSONRPCClient) BulkDiff(delete []PV, replace []PV, update []PV, ym yms.EnumYmType) (*Response, error) {
 	// build the request
 	r, err := NewDiffRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
 	if err != nil {

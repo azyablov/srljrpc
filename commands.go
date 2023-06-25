@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/azyablov/srljrpc/actions"
+	"github.com/azyablov/srljrpc/ctimeout"
 	"github.com/azyablov/srljrpc/datastores"
 	"github.com/azyablov/srljrpc/formats"
 	"github.com/azyablov/srljrpc/yms"
@@ -12,6 +13,9 @@ import (
 
 // CommandOption type to represent a function that configures a Command.
 type CommandOption func(*Command) error
+
+// CommandValue type to represent a value of a command.
+type CommandValue string
 
 // Constructor for a new Command object with mandatory action, path and value fields, and optional command options to influence command behavior.
 func NewCommand(action actions.EnumActions, path string, value CommandValue, opts ...CommandOption) (*Command, error) {
@@ -113,16 +117,14 @@ func (c *Command) withDatastore(ds datastores.EnumDatastores) error {
 	return c.Datastore.SetDatastore(ds)
 }
 
-// CommandValue type to represent a value of a command.
-type CommandValue string
-
 // Params defines a container for Commands and optional OutputFormat and Datastore objects.
-// Params embeds OutputFormat and Datastore objects.
+// Params embeds: OutputFormat, Datastore objects and ConfirmTimeout (used for confirmed commits).
 type Params struct {
 	Commands []Command `json:"commands"`
 	*formats.OutputFormat
 	*datastores.Datastore
 	*yms.YmType
+	*ctimeout.ConfirmTimeout
 }
 
 // Append commands to the params. Internal method.
@@ -146,6 +148,12 @@ func (p *Params) withDatastore(ds datastores.EnumDatastores) error {
 func (p *Params) withYmType(ym yms.EnumYmType) error {
 	p.YmType = &yms.YmType{}
 	return p.SetYmType(ym)
+}
+
+// Set confirm timeout for the params. Internal method.
+func (p *Params) withConfirmTimeout(t int) error {
+	p.ConfirmTimeout = &ctimeout.ConfirmTimeout{}
+	return p.SetTimeout(t)
 }
 
 // CLIParams defines a container for CLI commands and optional OutputFormat object.
