@@ -44,7 +44,7 @@ func NewGetRequest(paths []string, recursion bool, defaults bool, of formats.Enu
 }
 
 // NewSetRequest provides a new Request with the SET method and the given commands, which more advanced version of JRPCClient.Set().
-func NewSetRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of formats.EnumOutputFormats, ds datastores.EnumDatastores) (*Request, error) {
+func NewSetRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of formats.EnumOutputFormats, ds datastores.EnumDatastores, ct int) (*Request, error) {
 	// Check if commands are empty for set and TOOLS datastore combination
 	if (len(delete) != 0 || len(replace) != 0) && ds == datastores.TOOLS {
 		return nil, apierr.MessageError{
@@ -65,7 +65,11 @@ func NewSetRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of
 	}
 
 	// build the request
-	return NewRequest(methods.SET, cmds, WithRequestDatastore(ds), WithYmType(ym), WithOutputFormat(of))
+	if ct == 0 {
+		return NewRequest(methods.SET, cmds, WithRequestDatastore(ds), WithYmType(ym), WithOutputFormat(of))
+	} else {
+		return NewRequest(methods.SET, cmds, WithRequestDatastore(ds), WithYmType(ym), WithOutputFormat(of), WithConfirmTimeout(ct))
+	}
 }
 
 // NewValidateRequest provides a new Request with the VALIDATE method and the given commands, which more advanced version of JRPCClient.Validate().
@@ -207,6 +211,15 @@ func (r *Request) SetOutputFormat(of formats.EnumOutputFormats) error {
 	return nil
 }
 
+// Setting confirm timeout for the Request.
+func (r *Request) SetConfirmTimeout(t int) error {
+	err := r.Params.withConfirmTimeout(t)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Requester is an interface used by the JSON RPC client to send a request to the server.
 type Requester interface {
 	Marshal() ([]byte, error)
@@ -217,12 +230,36 @@ type Requester interface {
 }
 
 // RequestOption is a function type that applies options to a Request.
+// Each RequestOption has validation logic implemented to check correctness of the option application and return non nil apierr.MessageError if the option is not correct.
 type RequestOption func(*Request) error
 
 // Defines output format RequestOption.
 func WithOutputFormat(of formats.EnumOutputFormats) RequestOption {
 	return func(r *Request) error {
 		return r.SetOutputFormat(of)
+	}
+}
+
+// Defines confirm timeout RequestOption.
+func WithConfirmTimeout(t int) RequestOption {
+	return func(r *Request) error {
+		m, err := r.GetMethod()
+		if err != nil {
+			return apierr.MessageError{
+				MsgFunction: "WithConfirmTimeout",
+				Code:        apierr.ErrMsgGettingMethod,
+				Err:         err,
+			}
+		}
+		// confirm timeout is only allowed for SET method
+		if m != methods.SET {
+			return apierr.MessageError{
+				MsgFunction: "WithConfirmTimeout",
+				Code:        apierr.ErrMsgReqSettingConfirmTimeout,
+				Err:         fmt.Errorf("confirm timeout is only allowed for SET method"),
+			}
+		}
+		return r.SetConfirmTimeout(t)
 	}
 }
 
@@ -271,7 +308,15 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 					Err:         nil,
 				}
 			}
-			return r.Params.withDatastore(ds)
+			err := r.Params.withDatastore(ds)
+			if err != nil {
+				return apierr.MessageError{
+					MsgFunction: "WithRequestDatastore",
+					Code:        apierr.ErrMsgReqSettingDSParams,
+					Err:         err,
+				}
+			}
+			return nil
 		case methods.SET:
 			for _, c := range r.Params.Commands {
 				c.CleanDatastore() // clean datastore in commands, to be later if such protective measures are needed, since c.IsDefaultDatastore() added as verification check for SET/VALIDATE
@@ -310,7 +355,15 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 					Err:         nil,
 				}
 			}
-			return r.Params.withDatastore(ds)
+			err := r.Params.withDatastore(ds)
+			if err != nil {
+				return apierr.MessageError{
+					MsgFunction: "WithRequestDatastore",
+					Code:        apierr.ErrMsgReqSettingDSParams,
+					Err:         err,
+				}
+			}
+			return nil
 		case methods.VALIDATE:
 			// clean datastore in commands
 			for _, c := range r.Params.Commands {
@@ -323,7 +376,15 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 					Err:         nil,
 				}
 			}
-			return r.Params.withDatastore(ds)
+			err := r.Params.withDatastore(ds)
+			if err != nil {
+				return apierr.MessageError{
+					MsgFunction: "WithRequestDatastore",
+					Code:        apierr.ErrMsgReqSettingDSParams,
+					Err:         err,
+				}
+			}
+			return nil
 		case methods.DIFF:
 			// clean datastore in commands
 			for _, c := range r.Params.Commands {
@@ -336,7 +397,15 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 					Err:         nil,
 				}
 			}
-			return r.Params.withDatastore(ds)
+			err := r.Params.withDatastore(ds)
+			if err != nil {
+				return apierr.MessageError{
+					MsgFunction: "WithRequestDatastore",
+					Code:        apierr.ErrMsgReqSettingDSParams,
+					Err:         err,
+				}
+			}
+			return nil
 		default:
 			return apierr.MessageError{
 				MsgFunction: "WithRequestDatastore",
