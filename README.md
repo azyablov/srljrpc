@@ -61,7 +61,7 @@ Finally, our simple program is printing hostname and system version.
 ```sh
 [azyablov@ecartman srljrpc_client_example]$ go run client.go 
 Target hostname: leaf1
-Target system version: v22.6.2-24-g5e9fff1e5b
+Target system version: v23.3.2-106-g4490a15b16
 [azyablov@ecartman srljrpc_client_example]$ 
 ```
 
@@ -123,8 +123,9 @@ As soon as we submitted two xpath, we are getting two elements in the list of ``
 
 ```json
 Target hostname: leaf1
-Target system version: v23.3.1-343-gab924f2e64
-c.Get() example:
+Target system version: v23.3.2-106-g4490a15b16
+================================================================================
+Get() example:
 ================================================================================
 Response: [
   {
@@ -180,7 +181,7 @@ Well, one shoot of Stats() methods is resolving it in quite convenient way.
 In the example below we are using ```/system/json-rpc-server``` xpath.
 ```golang
     // Getting stats.
-	fmt.Println("c.State() example:")
+	fmt.Println("State() example:")
 	stateResp, err := c.State("/system/json-rpc-server")
 	if err != nil {
 		panic(err)
@@ -202,7 +203,7 @@ func outHelper(v any) {
 So, you should see something more on top of already mentioned output.
 
 ```json
-c.State() example:
+State() example:
 ================================================================================
 [
   {
@@ -243,19 +244,21 @@ c.State() example:
   }
 ]
 ================================================================================
-
 ```
 
 #### Updating/Replacing/Deleting config
 
 Example below is reading values before UPDATE/DELETE/REPLACE operations and executing them respectively.
 ```Validate()``` and ```Tools()``` methods are available as well, 
-first is used to validate configuration updates w/o applying it, the second one used to perform /tools operations like ```/tools interface ethernet-1/1 statistics clear```, 
-but they aren't giving anything special semantics in terms of API interaction and omitted for brevity.
+first is used to validate configuration updates w/o applying it, the second one used to perform /tools operations like ```/tools interface ethernet-1/1 statistics clear```.
+Confirmation timeout (`ct`) must be set to `0` to apply changes immediately, or positive int to allow additional verification checks before explicit confirmation OR rolling it back automatically. 
 
 ```golang
 	// Updating/Replacing/Deleting config
-	fmt.Println("c.Update()/Delete()/Replace() example:")
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println("Update()/Delete()/Replace() example:")
+	fmt.Println(strings.Repeat("=", 80))
+
 	pvs := []srljrpc.PV{
 		{Path: `/interface[name=ethernet-1/51]/subinterface[index=0]/description`, Value: "UPDATE"},
 		{Path: `/system/banner`, Value: "DELETE"},
@@ -270,27 +273,27 @@ but they aren't giving anything special semantics in terms of API interaction an
 		outHelper(getResp.Result)
 	}
 
-	mdmResp, err := c.Update(pvs[0])
+	mdmResp, err := c.Update(0, pvs[0]) // setting 0 as confirmation timeout to apply changes immediately.
 	if err != nil {
 		panic(err)
 	}
 	outHelper(mdmResp.Result)
-	mdmResp, err = c.Delete(pvs[1].Path)
+	mdmResp, err = c.Delete(0, pvs[1].Path) // setting 0 as confirmation timeout to apply changes immediately.
 	if err != nil {
 		panic(err)
 	}
 	outHelper(mdmResp.Result)
-	mdmResp, err = c.Replace(pvs[2])
+	mdmResp, err = c.Replace(0, pvs[2]) // setting 0 as confirmation timeout to apply changes immediately.
 	if err != nil {
 		panic(err)
 	}
 	outHelper(mdmResp.Result)
 ```
 
-Essentially one operation is just four lines of code:
+Effectively one operation is just four lines of code:
 
 ```golang
-	mdmResp, err = c.Replace(pvs[2])
+	mdmResp, err = c.Replace(0, pvs[2]) // setting 0 as confirmation timeout to apply changes immediately.
 	if err != nil {
 		panic(err)
 	}
@@ -299,7 +302,7 @@ Essentially one operation is just four lines of code:
 Console output should be altered by the following contents:
 
 ```json
-.Update()/Delete()/Replace() example:
+Update()/Delete()/Replace() example:
 [
   "to_spine1"
 ]
@@ -326,7 +329,7 @@ If we would again query it we should get the following output, since commit was 
 
 ```json
 ================================================================================
-c.Update()/Delete()/Replace() example:
+Update()/Delete()/Replace() example:
 ================================================================================
 [
   "UPDATE"
@@ -353,9 +356,10 @@ c.Update()/Delete()/Replace() example:
 ]
 ```
 
-Worth to mention, `BulkSetCandidate(delete []PV, replace []PV, update []PV, ym yms.EnumYmType) (*Response, error)` method.
+Worth to mention, `BulkSet(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, ct int) (*Response, error)` method.
 It allows you to combine delete, replace and update actions into the one SET request, so you can combine operations efficiently.
 YANG models namespace could be specified as well, where SRL corresponds to native models and OC to OpenConfig models.
+Confirmation timeout (`ct`) must be set to `0` to apply changes immediately, or positive int to allow additional verification checks before explicit confirmation OR rolling it back automatically. 
 
 #### Tools 
 
@@ -383,19 +387,26 @@ c.Tools() example:
 ================================================================================
 ```
 
-### Diff, OpenConfig yang-models and error handling
+#### Diff, OpenConfig yang-models and error handling
 
 Here we will consider number of examples to demonstrate ways to use `diff` method, OpenConfig models namespace and improved error handling.
 We will use OpenCOnfig, because by default RPC interface assumes SRL, and as such we got number of examples already.
 The first example demonstrates typical case of JSON RPC Error.
 
 ``` go
+	// Then for the sake of example we will use DIFF method with Bulk update: TestBulkDiffCandidate.
+	// DiffCandidate method is more simple and intended to use in cases you require only one action out of three: UPDATE, DELETE, REPLACE.
+	// That's essentially Bulk update with different operations: UPDATE, DELETE, REPLACE, while using yang-models of OpenConfig.
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println("BulkDiff() example with error:")
+	fmt.Println(strings.Repeat("=", 80))
+
 	pvs = []srljrpc.PV{
 		{Path: `/system/config/login-banner`, Value: "DELETE"},
 		{Path: `/interfaces/interface[name=mgmt0]/config/description`, Value: "REPLACE"},
 		{Path: `/interfaces/interface[name=ethernet-1/11]/subinterfaces/subinterface[index=0]/config/description`, Value: "UPDATE"},
 	}
-	bulkDiffResp, err := c.BulkDiffCandidate(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
+	bulkDiffResp, err := c.BulkDiff(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
 	if err != nil {
 		if cerr, ok := err.(apierr.ClientError); ok {
 			fmt.Printf("ClientError error: %s\n", cerr) // ClientError
@@ -459,6 +470,10 @@ const (
 Coming to our example...
 
 ```go
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println("BulkDiff() example with error:")
+	fmt.Println(strings.Repeat("=", 80))
+
 	pvs = []srljrpc.PV{
 		{Path: `/system/config/login-banner`, Value: "DELETE"},
 		{Path: `/interfaces/interface[name=mgmt0]/config/description`, Value: ""}, // Empty value will cause an error.
@@ -470,9 +485,8 @@ Coming to our example...
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Target hostname: %s\nTarget system version: %s\n", c.GetHostname(), c.GetSysVer())
 
-	bulkDiffResp, err = cOC.BulkDiffCandidate(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
+	bulkDiffResp, err = cOC.BulkDiff(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
 	if err != nil {
 		// Unwrapping error to investigate a root cause.
 		if cerr, ok := err.(apierr.ClientError); ok {
@@ -491,7 +505,6 @@ Coming to our example...
 	} else {
 		outHelper(bulkDiffResp.Result)
 	}
-
 ```
 
 And finally output demonstrates two nested errors...
@@ -499,7 +512,7 @@ And finally output demonstrates two nested errors...
 
 ```
 ================================================================================
-c.TestBulkDiffCandidate() example with error:
+BulkDiff() example with error:
 ================================================================================
 ClientError error: bulkDiffCandidate: RPC request creation error
 Underlaying error: newRequest(): error adding commands in request
@@ -509,6 +522,9 @@ Underlaying error: value isn't specified or not found in the path for method dif
 After corrections made, we should have our code executed without errors.
 
 ```golang
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println("BulkDiff() example w/o error:")
+	fmt.Println(strings.Repeat("=", 80))
 	// Adding changes into PV pairs to fix our artificial error and do things right ))
 	pvs = []srljrpc.PV{
 		{Path: `/system/config/login-banner`, Value: "DELETE"},
@@ -516,7 +532,7 @@ After corrections made, we should have our code executed without errors.
 		{Path: `/interfaces/interface[name=ethernet-1/11]/subinterfaces/subinterface[index=0]/config/description`, Value: "UPDATE"},
 	}
 
-	bulkDiffResp, err = cOC.BulkDiffCandidate(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
+	bulkDiffResp, err = cOC.BulkDiff(pvs[0:1], pvs[1:2], pvs[2:], yms.OC)
 	if err != nil {
 		outHelper(bulkDiffResp)
 		panic(err)
@@ -533,7 +549,8 @@ After corrections made, we should have our code executed without errors.
 
 
 ```json
-c.TestBulkDiffCandidate() example w/o error:
+================================================================================
+BulkDiff() example w/o error:
 ================================================================================
   {
     "interfaces": {
@@ -566,6 +583,156 @@ c.TestBulkDiffCandidate() example w/o error:
       }
     }
   }
+================================================================================
+```
+
+#### Confirmation timeout and CallBack functions
+
+As it was mentioned before ```Update()/Replace()/Delete()``` function provide `ct` parameter, which was set to `0` before.
+Setting it to something `>0` must trigger rollback on the switch, if changes aren't confirmed on time via TOOLS datastore `/system/configuration/confirmed-accept`.
+Library provides a bit more advanced function `BulkSetCallBack()` allowing to encapsulate your verification logic inside your function, which must satisfy exposed interface.
+```go
+// CallBackConfirm type to represent a callback function to confirm a request.
+// In case of confirm commit must return true, otherwise false.
+type CallBackConfirm func(req *Request, resp *Response) (bool, error)
+```
+In the example below `BulkSetCallBack()` called to apply interface description. The provided call back function just prints our RPC request / response and
+returns `false` to allow changes roll-back on SR Linux switch automatically, i.e. not confirming them.
+```go
+func confirmCallBack(req *srljrpc.Request, resp *srljrpc.Response) (bool, error) {
+	// This is a callback function to be called after confirmation timeout is expired.
+	// It is supposed to be used to confirm or cancel changes as per logic of the implementation.
+	// In this example we will just print out request and response to console and confirm changes - for the sake ot example that's replace sophisticated logic.
+	fmt.Println("Request:")
+	outHelper(req)
+	fmt.Println("Response:")
+	outHelper(resp)
+	return false, nil
+}
+```
+
+Client implementation example with `BulkSetCallBack()` runs it in separate thread, as such allowing parallel executions against several targets(switches).
+At the same time CallBack function has all necessary information (request and response) to implement verification logic as part of CI pipeline 
+in order to take necessary decision whether roll back or not roll back changes on the target.
+
+```go
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Println("BulkSetCallBack() with cancellation:")
+	fmt.Println(strings.Repeat("=", 80))
+	empty := []srljrpc.PV{}
+	sysInfPath := "/interface[name=system0]/description"
+	initVal := []srljrpc.PV{{Path: sysInfPath, Value: srljrpc.CommandValue("INITIAL")}}
+
+	_, err = c.Update(0, initVal[0]) // should be no error and system0 interface description should be set to "INITIAL".
+	if err != nil {
+		panic(err)
+	}
+
+	getResp, err = c.Get(sysInfPath)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Get() against %s before BulkSetCallBack():\n", sysInfPath)
+	fmt.Println(strings.Repeat("=", 80))
+	outHelper(getResp.Result)
+
+	chResp := make(chan *srljrpc.Response) // Channel for response.
+	chErr := make(chan error)              // Channel for error.
+	go func() {
+		newValueToConfirm := []srljrpc.PV{{Path: sysInfPath, Value: srljrpc.CommandValue("System Loopback")}}
+		// setting confirmation timeout to 30 seconds to allow comfortable time to verify changes. Setting 27 seconds as time to exec call back function.
+		// confirmCallBack is a function to be called after confirmation timeout is expired to confirm or cancel changes as per logic of the implementation.
+		resp, err := c.BulkSetCallBack(empty, empty, newValueToConfirm, yms.SRL, 8, 5, confirmCallBack)
+
+		// sending response and error to channels back to main thread.
+		chResp <- resp
+		chErr <- err
+	}()
+	// Meanwhile we can do something else in main thread.
+	// For example, we can get current value of the interface.
+	time.Sleep(2 * time.Second) // Allow 3 seconds to apply changes.
+	getResp, err = c.Get(sysInfPath)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Get() against %s:\n", sysInfPath)
+	fmt.Println(strings.Repeat("=", 80))
+	outHelper(getResp.Result)
+
+	// Waiting for response and error from channel.
+	resp := <-chResp
+	err = <-chErr
+	if err != nil {
+		panic(err)
+	}
+	// We expect response to be nil, as we set confirmation timeout to 30 seconds and call back function to 27 seconds.
+	if resp != nil {
+		fmt.Println("Unexpected response. Expected nil.")
+		outHelper(resp) // Unexpected outcome.
+	}
+	time.Sleep(30 * time.Second) // Allow enough time to rollback changes.
+	getResp, err = c.Get(sysInfPath)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Get() against %s after confirmation timeout expired:\n", sysInfPath)
+	fmt.Println(strings.Repeat("=", 80))
+	outHelper(getResp.Result)
+```
+
+Output should look similar to the following one:
+
+```json
+================================================================================
+BulkSetCallBack() with cancellation:
+================================================================================
+Get() against /interface[name=system0]/description before BulkSetCallBack():
+================================================================================
+[
+  "INITIAL"
+]
+================================================================================
+Get() against /interface[name=system0]/description:
+================================================================================
+[
+  "System Loopback"
+]
+================================================================================
+Request:
+{
+  "jsonrpc": "2.0",
+  "id": 1560953543165558821,
+  "method": "set",
+  "params": {
+    "commands": [
+      {
+        "path": "/interface[name=system0]/description",
+        "value": "System Loopback",
+        "action": "update"
+      }
+    ],
+    "output-format": "json",
+    "datastore": "candidate",
+    "yang-models": "srl",
+    "confirm-timeout": 8
+  }
+}
+================================================================================
+Response:
+{
+  "jsonrpc": "2.0",
+  "id": 1560953543165558821,
+  "result": [
+    {}
+  ]
+}
+================================================================================
+Get() against /interface[name=system0]/description after confirmation timeout expired:
+================================================================================
+[
+  "INITIAL"
+]
+================================================================================
 ```
 
 
