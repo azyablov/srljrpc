@@ -4,6 +4,7 @@ package srljrpc_test
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -78,7 +79,7 @@ func TestNewJSONRPCClient(t *testing.T) {
 	for _, td := range defTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := srljrpc.NewJSONRPCClient(td.host, td.opts...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -109,7 +110,7 @@ func TestNewJSONRPCClient(t *testing.T) {
 	for _, td := range certTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := srljrpc.NewJSONRPCClient(td.host, td.opts...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -140,7 +141,7 @@ func TestNewJSONRPCClient(t *testing.T) {
 	for _, td := range icaTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := srljrpc.NewJSONRPCClient(td.host, td.opts...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -168,7 +169,7 @@ func TestGet(t *testing.T) {
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Get(td.paths...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -196,7 +197,7 @@ func TestState(t *testing.T) {
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.State(td.paths...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -243,7 +244,7 @@ func TestUpdate(t *testing.T) {
 	for n, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Update(td.ct, td.pvs...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 			if n == 3 { // test with confirm timeout
 				t.Logf("Set Update against CANDIDATE datastore with default target and confirm timeout => Waiting for 1 seconds...")
 				time.Sleep(1 * time.Second)
@@ -346,7 +347,7 @@ func TestBulkSet(t *testing.T) {
 	for _, td := range setOCTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkSet(td.delete, td.replace, td.update, yms.OC, 0) // ct set to 0 to avoid confirm timeout
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -400,7 +401,7 @@ func TestBulkSet(t *testing.T) {
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkSet(td.delete, td.replace, td.update, yms.SRL, 0) // ct set to 0 to avoid confirm timeout
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -533,7 +534,7 @@ func TestBulkSetCallBack(t *testing.T) {
 			}
 			// Getting error from channel.
 			err = <-chErr
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -593,7 +594,7 @@ func TestBulkDiff(t *testing.T) {
 	for _, td := range setOCTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkDiff(td.delete, td.replace, td.update, yms.OC)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -648,7 +649,7 @@ func TestBulkDiff(t *testing.T) {
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkDiff(td.delete, td.replace, td.update, yms.SRL)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -677,7 +678,7 @@ func TestReplace(t *testing.T) {
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Replace(0, td.pvs...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -705,7 +706,7 @@ func TestDelete(t *testing.T) {
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Delete(0, td.paths...) // ct set to 0 to avoid confirm timeout
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -742,7 +743,7 @@ func TestValidate(t *testing.T) {
 	for _, td := range validateTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Validate(actions.UPDATE, td.pvs...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -778,7 +779,7 @@ func TestTools(t *testing.T) {
 	for _, td := range toolsTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Tools(td.pvs...)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -814,7 +815,7 @@ func TestCLI(t *testing.T) {
 	for _, td := range cliDoTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			r, err := c.Do(td.cliReq)
-			checkErrGotVSExp(err, td.expErr, t)
+			checkClntErrGotVSExp(err, td.expErr, t)
 			_, err = r.Marshal()
 			if err != nil {
 				t.Fatalf("can't marshal response: %v", err)
@@ -848,7 +849,7 @@ func TestCLI(t *testing.T) {
 		for _, td := range cliTestData {
 			t.Run(td.testName, func(t *testing.T) {
 				r, err := c.CLI(td.cmds, td.of)
-				checkErrGotVSExp(err, td.expErr, t)
+				checkClntErrGotVSExp(err, td.expErr, t)
 				_, err = r.Marshal()
 				if err != nil {
 					t.Fatalf("can't marshal response: %v", err)
@@ -920,4 +921,20 @@ func helperGetOCClient(t *testing.T) *srljrpc.JSONRPCClient {
 		t.Logf("underlying error: %v", uerr)
 	}
 	return c
+}
+
+func checkClntErrGotVSExp(err error, expErr error, t *testing.T) {
+	switch {
+	case err == nil && expErr == nil:
+	case err != nil && expErr != nil:
+		if !errors.Is(err, expErr) {
+			t.Errorf("got: [%s], while should be: [%s]", err, expErr)
+		}
+	case err == nil && expErr != nil:
+		t.Errorf("got: [%v], while should be: [%s]", err, expErr)
+	case err != nil && expErr == nil:
+		t.Errorf("got: [%s], while should be: [%v]", err, expErr)
+	default:
+		t.Errorf("unexpected error - got: [%s], while should be: [%s]", err, expErr)
+	}
 }
