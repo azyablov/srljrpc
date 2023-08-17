@@ -1,4 +1,4 @@
-//go:build !integration
+//go:build unit
 
 package srljrpc_test
 
@@ -31,7 +31,7 @@ func TestMethods(t *testing.T) {
 		{testName: "Setting method to VALIDATE", method: methods.VALIDATE, expErrSet: nil, expErrGet: nil},
 		{testName: "Setting method to DIFF", method: methods.DIFF, expErrSet: nil, expErrGet: nil},
 		{testName: "Setting method to INVALID_METHOD", method: methods.INVALID_METHOD, expErrSet: fmt.Errorf(methods.SetErrMsg), expErrGet: fmt.Errorf(methods.GetErrMsg)},
-		{testName: "Setting method to 100", method: methods.EnumMethods(100), expErrSet: fmt.Errorf(methods.SetErrMsg), expErrGet: fmt.Errorf(methods.GetErrMsg)},
+		{testName: "Setting method to foo", method: methods.EnumMethods("foo"), expErrSet: fmt.Errorf(methods.SetErrMsg), expErrGet: fmt.Errorf(methods.GetErrMsg)},
 	}
 	for _, td := range testData {
 		t.Run(td.testName, func(t *testing.T) {

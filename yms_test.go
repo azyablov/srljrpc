@@ -1,4 +1,4 @@
-//go:build !integration
+//go:build unit
 
 package srljrpc_test
 
@@ -32,7 +32,7 @@ func TestYms(t *testing.T) {
 	}{
 		{testName: "Setting yang models to SRL", yms: yms.SRL, expErrSet: nil, expErrGet: nil, errMsg: "yang models SRL isn't set properly: "},
 		{testName: "Setting yang models to OC", yms: yms.OC, expErrSet: nil, expErrGet: nil, errMsg: "yang models OC isn't set properly: "},
-		{testName: "Setting yang models to non existent option 100", yms: yms.EnumYmType(100), expErrSet: fmt.Errorf(yms.SetErrMsg), expErrGet: nil, errMsg: "fake yang models option 100 was handled incorrectly: "},
+		{testName: "Setting yang models to non existent option bar", yms: yms.EnumYmType("var"), expErrSet: fmt.Errorf(yms.SetErrMsg), expErrGet: nil, errMsg: "fake yang models option 100 was handled incorrectly: "},
 	}
 
 	for _, td := range testData {

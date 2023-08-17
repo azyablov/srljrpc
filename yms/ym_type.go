@@ -2,12 +2,12 @@ package yms
 
 import "fmt"
 
-type EnumYmType int
+type EnumYmType string
 
 // YmType is enumeration type for the yang models in request.
 const (
-	SRL EnumYmType = iota
-	OC
+	SRL EnumYmType = "srl"
+	OC  EnumYmType = "oc"
 )
 
 // YANG models to use for the get/set/validate/diff actions. Default is SRL
@@ -24,10 +24,12 @@ const (
 // SetYmType sets the yang models and non nil error if provided yang models format is not correct.
 func (y *YmType) SetYmType(ym EnumYmType) error {
 	switch ym {
-	case SRL:
-		y.YangModels = "srl"
-	case OC:
-		y.YangModels = "oc"
+	case SRL, OC:
+		y.YangModels = string(ym)
+	// case SRL:
+	// 	y.YangModels = "srl"
+	// case OC:
+	// 	y.YangModels = "oc"
 	default:
 		return fmt.Errorf(SetErrMsg)
 	}
@@ -38,10 +40,12 @@ func (y *YmType) SetYmType(ym EnumYmType) error {
 func (y *YmType) GetYmType() (EnumYmType, error) {
 	var ym EnumYmType
 	switch y.YangModels {
-	case "srl":
-		ym = SRL
-	case "oc":
-		ym = OC
+	case "srl", "oc":
+		ym = EnumYmType(y.YangModels)
+	// case "srl":
+	// 	ym = SRL
+	// case "oc":
+	// 	ym = OC
 	case "":
 		ym = SRL
 	default:

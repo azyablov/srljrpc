@@ -31,11 +31,7 @@ func NewGetRequest(paths []string, recursion bool, defaults bool, of formats.Enu
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), cmdOpt...)
 		if err != nil {
-			return nil, apierr.MessageError{
-				MsgFunction: "NewGetRequest",
-				Code:        apierr.ErrMsgCmdCreation,
-				Err:         err,
-			}
+			return nil, apierr.NewMessageError(apierr.CodeMsgCmdCreation, err)
 		}
 		cmds = append(cmds, cmd)
 	}
@@ -47,21 +43,13 @@ func NewGetRequest(paths []string, recursion bool, defaults bool, of formats.Enu
 func NewSetRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of formats.EnumOutputFormats, ds datastores.EnumDatastores, ct int) (*Request, error) {
 	// Check if commands are empty for set and TOOLS datastore combination
 	if (len(delete) != 0 || len(replace) != 0) && ds == datastores.TOOLS {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewSetRequest",
-			Code:        apierr.ErrMsgSetNotAllowedActForTools,
-			Err:         nil,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgSetNotAllowedActForTools, nil)
 	}
 
 	// build the commands
 	cmds, err := cmdPacker(delete, replace, update)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewSetRequest",
-			Code:        apierr.ErrMsgCmdCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgCmdCreation, err)
 	}
 
 	// build the request
@@ -77,11 +65,7 @@ func NewValidateRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmTyp
 	// build the commands
 	cmds, err := cmdPacker(delete, replace, update)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewValidateRequest",
-			Code:        apierr.ErrMsgCmdCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgCmdCreation, err)
 	}
 
 	// build the request
@@ -92,21 +76,13 @@ func NewValidateRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmTyp
 func NewDiffRequest(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, of formats.EnumOutputFormats, ds datastores.EnumDatastores) (*Request, error) {
 	// Check if commands are empty for diff and TOOLS datastore combination
 	if (len(delete) != 0 || len(replace) != 0) && ds == datastores.TOOLS {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewDiffRequest",
-			Code:        apierr.ErrMsgSetNotAllowedActForTools,
-			Err:         nil,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgSetNotAllowedActForTools, nil)
 	}
 
 	// build the commands
 	cmds, err := cmdPacker(delete, replace, update)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewDiffRequest",
-			Code:        apierr.ErrMsgCmdCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgCmdCreation, err)
 	}
 
 	// build the request
@@ -124,11 +100,7 @@ func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (
 	r.Method = &methods.Method{}
 	err := r.Method.SetMethod(m)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewRequest",
-			Code:        apierr.ErrMsgSettingMethod,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgSettingMethod, err)
 	}
 
 	// set random ID
@@ -145,11 +117,7 @@ func NewRequest(m methods.EnumMethods, cmds []*Command, opts ...RequestOption) (
 	// set commands
 	err = apply_cmds(r, cmds)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewRequest",
-			Code:        apierr.ErrMsgReqAddingCmds,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgReqAddingCmds, err)
 	}
 
 	// apply options to request
@@ -179,11 +147,7 @@ type Request struct {
 func (r *Request) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "Marshal",
-			Code:        apierr.ErrMsgReqMarshalling,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgReqMarshalling, err)
 	}
 	return b, nil
 }
@@ -202,11 +166,7 @@ func (r *Request) setID(id int) {
 func (r *Request) SetOutputFormat(of formats.EnumOutputFormats) error {
 	err := r.Params.OutputFormat.SetFormat(of)
 	if err != nil {
-		return apierr.MessageError{
-			MsgFunction: "SetOutputFormat",
-			Code:        apierr.ErrMsgReqSettingOutFormat,
-			Err:         err,
-		}
+		return apierr.NewMessageError(apierr.CodeMsgReqSettingOutFormat, err)
 	}
 	return nil
 }
@@ -224,7 +184,6 @@ func (r *Request) SetConfirmTimeout(t int) error {
 type Requester interface {
 	Marshal() ([]byte, error)
 	GetMethod() (methods.EnumMethods, error)
-	MethodName() string
 	GetID() int
 	SetOutputFormat(of formats.EnumOutputFormats) error
 }
@@ -245,19 +204,11 @@ func WithConfirmTimeout(t int) RequestOption {
 	return func(r *Request) error {
 		m, err := r.GetMethod()
 		if err != nil {
-			return apierr.MessageError{
-				MsgFunction: "WithConfirmTimeout",
-				Code:        apierr.ErrMsgGettingMethod,
-				Err:         err,
-			}
+			return apierr.NewMessageError(apierr.CodeMsgGettingMethod, err)
 		}
 		// confirm timeout is only allowed for SET method
 		if m != methods.SET {
-			return apierr.MessageError{
-				MsgFunction: "WithConfirmTimeout",
-				Code:        apierr.ErrMsgReqSettingConfirmTimeout,
-				Err:         fmt.Errorf("confirm timeout is only allowed for SET method"),
-			}
+			return apierr.NewMessageError(apierr.CodeMsgReqSettingConfirmTimeout, nil)
 		}
 		return r.SetConfirmTimeout(t)
 	}
@@ -268,27 +219,15 @@ func WithYmType(ym yms.EnumYmType) RequestOption {
 	return func(r *Request) error {
 		m, err := r.GetMethod()
 		if err != nil {
-			return apierr.MessageError{
-				MsgFunction: "WithYmType",
-				Code:        apierr.ErrMsgGettingMethod,
-				Err:         err,
-			}
+			return apierr.NewMessageError(apierr.CodeMsgGettingMethod, err)
 		}
 		// yang models specification on Request.Params level is not supported for method CLI and GET
 		if m == methods.CLI || m == methods.GET {
-			return apierr.MessageError{
-				MsgFunction: "WithYmType",
-				Code:        apierr.ErrMsgYANGSpecNotAllowed,
-				Err:         nil,
-			}
+			return apierr.NewMessageError(apierr.CodeMsgYANGSpecNotAllowed, nil)
 		}
 		err = r.Params.withYmType(ym)
 		if err != nil {
-			return apierr.MessageError{
-				MsgFunction: "WithYmType",
-				Code:        apierr.ErrMsgReqSettingYMParams,
-				Err:         err,
-			}
+			return apierr.NewMessageError(apierr.CodeMsgReqSettingYMParams, err)
 		}
 		return nil
 	}
@@ -302,19 +241,11 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 		switch m {
 		case methods.GET:
 			if ds == datastores.TOOLS {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgReqGetDSNotAllowed,
-					Err:         nil,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgReqGetDSNotAllowed, nil)
 			}
 			err := r.Params.withDatastore(ds)
 			if err != nil {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgReqSettingDSParams,
-					Err:         err,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgReqSettingDSParams, err)
 			}
 			return nil
 		case methods.SET:
@@ -323,45 +254,25 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 				a, err := c.Action.GetAction()
 				if err != nil {
 					//return err
-					return apierr.MessageError{
-						MsgFunction: "WithRequestDatastore",
-						Code:        apierr.ErrMsgReqSetSettingAction,
-						Err:         err,
-					}
+					return apierr.NewMessageError(apierr.CodeMsgReqSetSettingAction, err)
 				}
 				// now we can check if action UPDATE has value for CANDIDATE datastore
 				if ds == datastores.CANDIDATE && a == actions.UPDATE {
 					if c.Value == "" && !strings.Contains(c.Path, ":") {
-						return apierr.MessageError{
-							MsgFunction: "WithRequestDatastore",
-							Code:        apierr.ErrMsgDSCandidateUpdateNoValue,
-							Err:         nil,
-						}
+						return apierr.NewMessageError(apierr.CodeMsgDSCandidateUpdateNoValue, nil)
 					}
 				}
 				// The set method can be used with tools datastores only with the update action.
 				if ds == datastores.TOOLS && a != actions.UPDATE {
-					return apierr.MessageError{
-						MsgFunction: "WithRequestDatastore",
-						Code:        apierr.ErrMsgDSToolsSetUpdateOnly,
-						Err:         nil,
-					}
+					return apierr.NewMessageError(apierr.CodeMsgDSToolsSetUpdateOnly, nil)
 				}
 			}
 			if ds != datastores.CANDIDATE && ds != datastores.TOOLS {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgDSToolsCandidateSetOnly,
-					Err:         nil,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgDSToolsCandidateSetOnly, nil)
 			}
 			err := r.Params.withDatastore(ds)
 			if err != nil {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgReqSettingDSParams,
-					Err:         err,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgReqSettingDSParams, err)
 			}
 			return nil
 		case methods.VALIDATE:
@@ -370,19 +281,11 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 				c.CleanDatastore() // clean datastore in commands, to be decided later if such protective measures are needed, since c.IsDefaultDatastore() added as verification check for SET/VALIDATE
 			}
 			if ds != datastores.CANDIDATE {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgDSCandidateValidateOnly,
-					Err:         nil,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgDSCandidateValidateOnly, nil)
 			}
 			err := r.Params.withDatastore(ds)
 			if err != nil {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgReqSettingDSParams,
-					Err:         err,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgReqSettingDSParams, err)
 			}
 			return nil
 		case methods.DIFF:
@@ -391,27 +294,15 @@ func WithRequestDatastore(ds datastores.EnumDatastores) RequestOption {
 				c.CleanDatastore() // clean datastore in commands, to be decided later if such protective measures are needed, since c.IsDefaultDatastore() added as verification check for SET/VALIDATE
 			}
 			if ds != datastores.CANDIDATE {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgDSCandidateDiffOnly,
-					Err:         nil,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgDSCandidateDiffOnly, nil)
 			}
 			err := r.Params.withDatastore(ds)
 			if err != nil {
-				return apierr.MessageError{
-					MsgFunction: "WithRequestDatastore",
-					Code:        apierr.ErrMsgReqSettingDSParams,
-					Err:         err,
-				}
+				return apierr.NewMessageError(apierr.CodeMsgReqSettingDSParams, err)
 			}
 			return nil
 		default:
-			return apierr.MessageError{
-				MsgFunction: "WithRequestDatastore",
-				Code:        apierr.ErrMsgDSSpecNotAllowedForUnknownMethod,
-				Err:         nil,
-			}
+			return apierr.NewMessageError(apierr.CodeMsgDSSpecNotAllowedForUnknownMethod, nil)
 		}
 	}
 }
@@ -439,7 +330,7 @@ func apply_cmds(r *Request, cmds []*Command) error {
 		for _, c := range cmds {
 			// path command - Mandatory with the get, set and validate methods.
 			if c.Path == "" {
-				return fmt.Errorf("path not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("path not found, but should be specified for method %s", m)
 			}
 			// The get method can be used with candidate, running, and state datastores, but cannot be used with the tools datastore.
 			d, err := c.GetDatastore()
@@ -447,31 +338,31 @@ func apply_cmds(r *Request, cmds []*Command) error {
 				return err
 			}
 			if d == datastores.TOOLS {
-				return fmt.Errorf("datastore TOOLS is not allowed for method %s", r.Method.MethodName())
+				return fmt.Errorf("datastore TOOLS is not allowed for method %s", m)
 			}
 			// Action and value are not allowed for the get method.
 			if c.Action != nil {
-				return fmt.Errorf("action not allowed for method %s", r.Method.MethodName())
+				return fmt.Errorf("action not allowed for method %s", m)
 			}
 			if c.Value != "" {
-				return fmt.Errorf("value not allowed for method %s", r.Method.MethodName())
+				return fmt.Errorf("value not allowed for method %s", m)
 			}
 		}
 	case methods.SET:
 		for _, c := range cmds {
 			// path command - Mandatory with the get, set and validate methods.
 			if c.Path == "" {
-				return fmt.Errorf("path not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("path not found, but should be specified for method %s", m)
 			}
 
 			// Check if datastore has been set to default datastore.
 			if !c.IsDefaultDatastore() {
-				return fmt.Errorf("command level datastore must not be set for method %s", r.Method.MethodName())
+				return fmt.Errorf("command level datastore must not be set for method %s", m)
 			}
 
 			// Action command is mandatory with the set method.
 			if c.Action == nil {
-				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("action not found, but should be specified for method %s", m)
 			}
 			a, err := c.Action.GetAction()
 			if err != nil {
@@ -479,23 +370,23 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			}
 			// check if action is valid for the set method
 			if a == actions.NONE {
-				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("action not found, but should be specified for method %s", m)
 			}
 			// Check if value is specified for the set method.
 			if c.Value == "" && !strings.Contains(c.Path, ":") && a != actions.DELETE && a != actions.UPDATE {
-				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
+				return fmt.Errorf("value isn't specified or not found in the path for method %s", m)
 			}
 			if c.Value != "" && a == actions.DELETE {
-				return fmt.Errorf("value specified for action DELETE for method %s", r.Method.MethodName())
+				return fmt.Errorf("value specified for action DELETE for method %s", m)
 			}
 			// Check if value is specified in the path and as a separate value for the set method.
 			if strings.Contains(c.Path, ":") {
 				sl := strings.Split(c.Path, ":")
 				if len(sl) != 2 {
-					return fmt.Errorf("invalid k:v path specification for method %s", r.Method.MethodName())
+					return fmt.Errorf("invalid k:v path specification for method %s", m)
 				}
 				if c.Value != "" {
-					return fmt.Errorf("value specified in the path and as a separate value for method %s", r.Method.MethodName())
+					return fmt.Errorf("value specified in the path and as a separate value for method %s", m)
 				}
 			}
 		}
@@ -503,16 +394,16 @@ func apply_cmds(r *Request, cmds []*Command) error {
 		for _, c := range cmds {
 			// path command - Mandatory with the GET, SET and VALIDATE methods.
 			if c.Path == "" {
-				return fmt.Errorf("path not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("path not found, but should be specified for method %s", m)
 			}
 
 			// Check if datastore has been set to default datastore.
 			if !c.IsDefaultDatastore() {
-				return fmt.Errorf("command level datastore must not be set for method %s", r.Method.MethodName())
+				return fmt.Errorf("command level datastore must not be set for method %s", m)
 			}
 			// Action command is mandatory with the VALIDATE method.
 			if c.Action == nil {
-				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("action not found, but should be specified for method %s", m)
 			}
 			a, err := c.Action.GetAction()
 			if err != nil {
@@ -520,23 +411,23 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			}
 			// check if action is valid for the VALIDATE method
 			if a == actions.NONE {
-				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("action not found, but should be specified for method %s", m)
 			}
 			// Check if value is specified for the VALIDATE method.
 			if c.Value == "" && !strings.Contains(c.Path, ":") && a != actions.DELETE {
-				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
+				return fmt.Errorf("value isn't specified or not found in the path for method %s", m)
 			}
 			if c.Value != "" && a == actions.DELETE {
-				return fmt.Errorf("value specified for action DELETE for method %s", r.Method.MethodName())
+				return fmt.Errorf("value specified for action DELETE for method %s", m)
 			}
 			// Check if value is specified in the path and as a separate value for the DIFF method.
 			if strings.Contains(c.Path, ":") {
 				sl := strings.Split(c.Path, ":")
 				if len(sl) != 2 {
-					return fmt.Errorf("invalid k:v path specification for method %s", r.Method.MethodName())
+					return fmt.Errorf("invalid k:v path specification for method %s", m)
 				}
 				if c.Value != "" {
-					return fmt.Errorf("value specified in the path and as a separate value for method %s", r.Method.MethodName())
+					return fmt.Errorf("value specified in the path and as a separate value for method %s", m)
 				}
 			}
 		}
@@ -544,15 +435,15 @@ func apply_cmds(r *Request, cmds []*Command) error {
 		for _, c := range cmds {
 			// Path command - Mandatory for DIFF method.
 			if c.Path == "" {
-				return fmt.Errorf("path not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("path not found, but should be specified for method %s", m)
 			}
 			// Check if datastore has been set to default datastore.
 			if !c.IsDefaultDatastore() {
-				return fmt.Errorf("command level datastore must not be set for method %s", r.Method.MethodName())
+				return fmt.Errorf("command level datastore must not be set for method %s", m)
 			}
 			// Action command is mandatory with the DIFF method.
 			if c.Action == nil {
-				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("action not found, but should be specified for method %s", m)
 			}
 			a, err := c.Action.GetAction()
 			if err != nil {
@@ -560,30 +451,30 @@ func apply_cmds(r *Request, cmds []*Command) error {
 			}
 			// check if action is valid for the DIFF method
 			if !(a == actions.UPDATE || a == actions.DELETE || a == actions.REPLACE) {
-				return fmt.Errorf("action not found, but should be specified for method %s", r.Method.MethodName())
+				return fmt.Errorf("action not found, but should be specified for method %s", m)
 			}
 			// Check if value is specified for the DIFF method.
 			if c.Value == "" && !strings.Contains(c.Path, ":") && a != actions.DELETE {
-				return fmt.Errorf("value isn't specified or not found in the path for method %s", r.Method.MethodName())
+				return fmt.Errorf("value isn't specified or not found in the path for method %s", m)
 			}
 			if c.Value != "" && a == actions.DELETE {
-				return fmt.Errorf("value specified for action DELETE for method %s", r.Method.MethodName())
+				return fmt.Errorf("value specified for action DELETE for method %s", m)
 			}
 			// Check if value is specified in the path and as a separate value for the DIFF method.
 			if strings.Contains(c.Path, ":") {
 				sl := strings.Split(c.Path, ":")
 				if len(sl) != 2 {
-					return fmt.Errorf("invalid k:v path specification for method %s", r.Method.MethodName())
+					return fmt.Errorf("invalid k:v path specification for method %s", m)
 				}
 				if c.Value != "" {
-					return fmt.Errorf("value specified in the path and as a separate value for method %s", r.Method.MethodName())
+					return fmt.Errorf("value specified in the path and as a separate value for method %s", m)
 				}
 			}
 		}
 	case methods.CLI:
-		return fmt.Errorf("method %s not supported by Request, please use CLIRequest object", r.Method.MethodName())
+		return fmt.Errorf("method %s not supported by Request, please use CLIRequest object", m)
 	default:
-		return fmt.Errorf("method %s not supported by Request", r.Method.MethodName())
+		return fmt.Errorf("method %s not supported by Request", m)
 	}
 	// checks passed, append commands to request
 	err = r.Params.appendCommands(cmds)
@@ -644,11 +535,7 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 	r.Method = &methods.Method{}
 	err := r.Method.SetMethod(methods.CLI)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewCLIRequest",
-			Code:        apierr.ErrMsgSettingMethod,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgCLISettingMethod, err)
 	}
 
 	// set random ID
@@ -662,11 +549,7 @@ func NewCLIRequest(cmds []string, of formats.EnumOutputFormats) (*CLIRequest, er
 	// set commands
 	err = r.Params.appendCommands(cmds)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "NewCLIRequest",
-			Code:        apierr.ErrMsgCLIAddingCmdsInReq,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgCLIAddingCmdsInReq, err)
 	}
 
 	// apply options to request
@@ -694,11 +577,7 @@ type CLIRequest struct {
 func (r *CLIRequest) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "Marshal",
-			Code:        apierr.ErrMsgReqMarshalling,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgCLIMarshalling, err)
 	}
 	return b, nil
 }
@@ -717,11 +596,7 @@ func (r *CLIRequest) setID(id int) {
 func (r *CLIRequest) SetOutputFormat(of formats.EnumOutputFormats) error {
 	err := r.Params.OutputFormat.SetFormat(of)
 	if err != nil {
-		return apierr.MessageError{
-			MsgFunction: "SetOutputFormat",
-			Code:        apierr.ErrMsgCLISettingOutFormat,
-			Err:         err,
-		}
+		return apierr.NewMessageError(apierr.CodeMsgCLISettingOutFormat, err)
 	}
 	return nil
 }
@@ -756,11 +631,7 @@ type Response struct {
 func (r *Response) Marshal() ([]byte, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		return nil, apierr.MessageError{
-			MsgFunction: "Marshal",
-			Code:        apierr.ErrMsgRespMarshalling,
-			Err:         err,
-		}
+		return nil, apierr.NewMessageError(apierr.CodeMsgRespMarshalling, err)
 	}
 	return b, nil
 }

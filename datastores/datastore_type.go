@@ -3,7 +3,7 @@ package datastores
 import "fmt"
 
 // EnumDatastores is an enumeration type of the datastore types.
-type EnumDatastores int
+type EnumDatastores string
 
 //	Valid enumeration EnumDatastores:
 //		CANDIDATE - Used to change the configuration of the system with the get, set, and validate methods; default datastore is used if the datastore parameter is not provided.
@@ -13,10 +13,10 @@ type EnumDatastores int
 //
 // By default we use CANDIDATE datastore, which is empty string OR "candidate" string in case specified explicitly.
 const (
-	CANDIDATE EnumDatastores = iota
-	RUNNING
-	STATE
-	TOOLS
+	CANDIDATE EnumDatastores = "candidate"
+	RUNNING   EnumDatastores = "running"
+	STATE     EnumDatastores = "state"
+	TOOLS     EnumDatastores = "tools"
 )
 
 // Error messages for the Datastore class.
@@ -36,14 +36,16 @@ type Datastore struct {
 func (d *Datastore) GetDatastore() (EnumDatastores, error) {
 	var rd EnumDatastores
 	switch d.Datastore {
-	case "candidate":
-		rd = CANDIDATE
-	case "running":
-		rd = RUNNING
-	case "state":
-		rd = STATE
-	case "tools":
-		rd = TOOLS
+	case "candidate", "running", "state", "tools":
+		rd = EnumDatastores(d.Datastore)
+	// case "candidate":
+	// 	rd = CANDIDATE
+	// case "running":
+	// 	rd = RUNNING
+	// case "state":
+	// 	rd = STATE
+	// case "tools":
+	// 	rd = TOOLS
 	case "":
 		rd = CANDIDATE
 	default:
@@ -55,14 +57,14 @@ func (d *Datastore) GetDatastore() (EnumDatastores, error) {
 // SetDatastore sets the datastore type and non nil error if provided datastore is not correct.
 func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 	switch rd {
-	case CANDIDATE:
-		d.Datastore = "candidate"
-	case RUNNING:
-		d.Datastore = "running"
-	case STATE:
-		d.Datastore = "state"
-	case TOOLS:
-		d.Datastore = "tools"
+	case CANDIDATE, RUNNING, STATE, TOOLS:
+		d.Datastore = string(rd)
+	// case RUNNING:
+	// 	d.Datastore = "running"
+	// case STATE:
+	// 	d.Datastore = "state"
+	// case TOOLS:
+	// 	d.Datastore = "tools"
 	default:
 		return fmt.Errorf(SetErrMsg)
 	}
@@ -70,12 +72,12 @@ func (d *Datastore) SetDatastore(rd EnumDatastores) error {
 }
 
 // Additional implementation helper method to get datastore name as string.
-func (d *Datastore) DatastoreName() string {
-	if d.Datastore == "" {
-		return "candidate"
-	}
-	return d.Datastore
-}
+// func (d *Datastore) DatastoreName() string {
+// 	if d.Datastore == "" {
+// 		return "candidate"
+// 	}
+// 	return d.Datastore
+// }
 
 // Additional implementation helper method to clean datastore name, used for Command in case of SET/VALIDATE to clean datastore name for all commands underneath.
 func (d *Datastore) CleanDatastore() {

@@ -32,7 +32,7 @@ jobs:
       
       - name: Unit_tests
         if: ${{ success() }}
-        run: go test -v
+        run: go test --tags unit -v
 
       - name: Pulling_docker_images
         if: ${{ success() }}
