@@ -1,70 +1,142 @@
+//go:generate stringer -type=EnumCltErr,EnumMsgErr -linecomment -output=errors_string.go
 package apierr
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 )
 
 type EnumCltErr int
 type EnumMsgErr int
 
-// Error messages for the Client class, which is the main class of the package.
-// For the error definition see the ClientError.Error() method.
+// NewClientError returns ClientError with the specified code and wrapped error.
+func NewClientError(ce EnumCltErr, e error) error {
+	return ClientError{
+		Code: ce,
+		Err:  e,
+	}
+}
+
+// NewMessageError returns MessageError with the specified code and wrapped error.
+func NewMessageError(me EnumMsgErr, e error) error {
+	return MessageError{
+		Code: me,
+		Err:  e,
+	}
+}
+
+// Error codes for the Client class, which is the main class of the package.
 const (
-	ErrClntUndefined EnumCltErr = iota
-	ErrClntNoHost
-	ErrClntTargetVerification
-	ErrClntMarshalling
-	ErrClntHTTPReqCreation
-	ErrClntHTTPSend
-	ErrClntHTTPStatus
-	ErrClntJSONUnmarshalling
-	ErrClntIDMismatch
-	ErrClntJSONRPC
-	ErrClntCmdCreation
-	ErrClntRPCReqCreation
-	ErrClntActNONE
-	ErrClntActUnsupported
-	ErrClntNoPort
-	ErrClntNoUsername
-	ErrClntNoPassword
-	ErrClntTLSFilesUnspecified
-	ErrClntTLSFOpenCA
-	ErrClntTLSLoadCAPEM
-	ErrClntTLSLoadCertPair
-	ErrClntTLSCertParsing
-	ErrClntCBFuncLowerThanCT
-	ErrClntCBFuncIsNil
-	ErrClntCBFuncExec
+	CodeClntUndefined             EnumCltErr = iota // undefined error
+	CodeClntNoHost                                  // host is not set, but mandatory
+	CodeClntTargetVerification                      // target verification error
+	CodeClntReqMarshalling                          // request marshalling error
+	CodeClntHTTPReqCreation                         // HTTP request creation error
+	CodeClntHTTPSend                                // HTTP send error
+	CodeClntHTTPStatus                              // HTTP status error
+	CodeClntRespJSONUnmarshalling                   // response JSON unmarshalling error
+	CodeClntIDMismatch                              // request and response IDs do not match
+	CodeClntJSONRPCResp                             // JSON-RPC response error
+	CodeClntCmdCreation                             // command creation error
+	CodeClntRPCReqCreation                          // RPC request creation error
+	CodeClntActNONE                                 // action can't be NONE
+	CodeClntActUnsupported                          // unsupported action specified
+	CodeClntNoPort                                  // port could not be nil
+	CodeClntNoUsername                              // username could not be nil
+	CodeClntNoPassword                              // password could not be nil
+	CodeClntTLSFilesUnspecified                     // one of more files for rootCA / certificate / key are not specified
+	CodeClntTLSFOpenCA                              // failed to open rootCA file
+	CodeClntTLSLoadCAPEM                            // can't load PEM file for rootCA
+	CodeClntTLSLoadCertPair                         // can't load PEM file for certificate / key pair
+	CodeClntTLSCertParsing                          // certificate parsing error
+	CodeClntCBFuncLowerThanCT                       // callback timeout must be lower than confirm timeout
+	CodeClntCBFuncIsNil                             // callback function is nil
+	CodeClntCBFuncExec                              // callback function execution error
+	CodeClntDatastoreUnsupported                    // datastore is not supported for this method
 )
 
+var (
+	ErrClntUndefined            = NewClientError(CodeClntUndefined, nil)
+	ErrClntTargetVerification   = NewClientError(CodeClntTargetVerification, nil)
+	ErrClntMarshalling          = NewClientError(CodeClntReqMarshalling, nil)
+	ErrClntHTTPReqCreation      = NewClientError(CodeClntHTTPReqCreation, nil)
+	ErrClntHTTPSend             = NewClientError(CodeClntHTTPSend, nil)
+	ErrClntHTTPStatus           = NewClientError(CodeClntHTTPStatus, nil)
+	ErrClntJSONUnmarshalling    = NewClientError(CodeClntRespJSONUnmarshalling, nil)
+	ErrClntIDMismatch           = NewClientError(CodeClntIDMismatch, nil)
+	ErrClntJSONRPCResp          = NewClientError(CodeClntJSONRPCResp, nil)
+	ErrClntCmdCreation          = NewClientError(CodeClntCmdCreation, nil)
+	ErrClntRPCReqCreation       = NewClientError(CodeClntRPCReqCreation, nil)
+	ErrClntActNONE              = NewClientError(CodeClntActNONE, nil)
+	ErrClntActUnsupported       = NewClientError(CodeClntActUnsupported, nil)
+	ErrClntNoPort               = NewClientError(CodeClntNoPort, nil)
+	ErrClntNoUsername           = NewClientError(CodeClntNoUsername, nil)
+	ErrClntNoPassword           = NewClientError(CodeClntNoPassword, nil)
+	ErrClntTLSFilesUnspecified  = NewClientError(CodeClntTLSFilesUnspecified, nil)
+	ErrClntTLSFOpenCA           = NewClientError(CodeClntTLSFOpenCA, nil)
+	ErrClntTLSLoadCAPEM         = NewClientError(CodeClntTLSLoadCAPEM, nil)
+	ErrClntTLSLoadCertPair      = NewClientError(CodeClntTLSLoadCertPair, nil)
+	ErrClntTLSCertParsing       = NewClientError(CodeClntTLSCertParsing, nil)
+	ErrClntCBFuncLowerThanCT    = NewClientError(CodeClntCBFuncLowerThanCT, nil)
+	ErrClntCBFuncIsNil          = NewClientError(CodeClntCBFuncIsNil, nil)
+	ErrClntCBFuncExec           = NewClientError(CodeClntCBFuncExec, nil)
+	ErrClntDatastoreUnsupported = NewClientError(CodeClntDatastoreUnsupported, nil)
+)
+
+// Error codes for the Message class, which is the main class of the package.
 const (
-	ErrMsgUndefined   EnumMsgErr = iota
-	ErrMsgCmdCreation            // Contains underlying error.
-	ErrMsgSetNotAllowedActForTools
-	ErrMsgSettingMethod       // Contains underlying error.
-	ErrMsgReqAddingCmds       // Contains underlying error.
-	ErrMsgReqMarshalling      // Contains underlying error.
-	ErrMsgReqSettingOutFormat // Contains underlying error.
-	ErrMsgGettingMethod       // Contains underlying error.
-	ErrMsgYANGSpecNotAllowed
-	ErrMsgReqSettingYMParams // Contains underlying error.
-	ErrMsgReqGetDSNotAllowed
-	ErrMsgReqSetSettingAction // Contains underlying error.
-	ErrMsgDSCandidateUpdateNoValue
-	ErrMsgDSToolsSetUpdateOnly
-	ErrMsgDSToolsCandidateSetOnly
-	ErrMsgDSCandidateValidateOnly
-	ErrMsgDSCandidateDiffOnly
-	ErrMsgDSSpecNotAllowedForUnknownMethod
-	ErrMsgCLISettingMethod         // Contains underlying error.
-	ErrMsgCLIAddingCmdsInReq       // Contains underlying error.
-	ErrMsgCLISettingOutFormat      // Contains underlying error.
-	ErrMsgCLIMarshalling           // Contains underlying error.
-	ErrMsgRespMarshalling          // Contains underlying error.
-	ErrMsgReqSettingConfirmTimeout // Contains underlying error.
-	ErrMsgReqSettingDSParams       // Contains underlying error.
+	CodeMsgUndefined                        EnumMsgErr = iota // undefined error
+	CodeMsgCmdCreation                                        // command creation error
+	CodeMsgSetNotAllowedActForTools                           // no delete or replace actions allowed for method set and datastore TOOLS
+	CodeMsgSettingMethod                                      // error setting method in request
+	CodeMsgReqAddingCmds                                      // error adding commands in request
+	CodeMsgReqMarshalling                                     // marshalling error
+	CodeMsgReqSettingOutFormat                                // error setting output format in request
+	CodeMsgGettingMethod                                      // error getting method
+	CodeMsgYANGSpecNotAllowed                                 // yang models specification on Request.Params level is not supported for method
+	CodeMsgReqSettingYMParams                                 // error setting yang models specification on Request.Params level
+	CodeMsgReqGetDSNotAllowed                                 // datastore is not allowed for method get
+	CodeMsgReqSetSettingAction                                // setting action error for method set
+	CodeMsgDSCandidateUpdateNoValue                           // value isn't specified or not found in the path for method set and datastore CANDIDATE
+	CodeMsgDSToolsSetUpdateOnly                               // only update action is allowed with TOOLS datastore for method set
+	CodeMsgDSToolsCandidateSetOnly                            // only CANDIDATE and TOOLS datastores allowed for method set
+	CodeMsgDSCandidateValidateOnly                            // only CANDIDATE datastore allowed for method validate
+	CodeMsgDSCandidateDiffOnly                                // only CANDIDATE datastore allowed for method diff
+	CodeMsgDSSpecNotAllowedForUnknownMethod                   // datastore specification on Request.Params level is not supported for unknown method
+	CodeMsgCLISettingMethod                                   // error setting cli method
+	CodeMsgCLIAddingCmdsInReq                                 // error adding cli commands in request
+	CodeMsgCLISettingOutFormat                                // error setting output format for cli method
+	CodeMsgCLIMarshalling                                     // cli request marshalling error
+	CodeMsgRespMarshalling                                    // JSON response marshalling error
+	CodeMsgReqSettingConfirmTimeout                           // confirm timeout is allowed for SET method only
+	CodeMsgReqSettingDSParams                                 // error setting datastore parameters in request (check underlying error)
+)
+
+var (
+	ErrMsgUndefined                        = NewMessageError(CodeMsgUndefined, nil)
+	ErrMsgCmdCreation                      = NewMessageError(CodeMsgCmdCreation, nil)
+	ErrMsgSetNotAllowedActForTools         = NewMessageError(CodeMsgSetNotAllowedActForTools, nil)
+	ErrMsgSettingMethod                    = NewMessageError(CodeMsgSettingMethod, nil)
+	ErrMsgReqAddingCmds                    = NewMessageError(CodeMsgReqAddingCmds, nil)
+	ErrMsgReqMarshalling                   = NewMessageError(CodeMsgReqMarshalling, nil)
+	ErrMsgReqSettingOutFormat              = NewMessageError(CodeMsgReqSettingOutFormat, nil)
+	ErrMsgGettingMethod                    = NewMessageError(CodeMsgGettingMethod, nil)
+	ErrMsgYANGSpecNotAllowed               = NewMessageError(CodeMsgYANGSpecNotAllowed, nil)
+	ErrMsgReqSettingYMParams               = NewMessageError(CodeMsgReqSettingYMParams, nil)
+	ErrMsgReqGetDSNotAllowed               = NewMessageError(CodeMsgReqGetDSNotAllowed, nil)
+	ErrMsgReqSetSettingAction              = NewMessageError(CodeMsgReqSetSettingAction, nil)
+	ErrMsgDSCandidateUpdateNoValue         = NewMessageError(CodeMsgDSCandidateUpdateNoValue, nil)
+	ErrMsgDSToolsSetUpdateOnly             = NewMessageError(CodeMsgDSToolsSetUpdateOnly, nil)
+	ErrMsgDSToolsCandidateSetOnly          = NewMessageError(CodeMsgDSToolsCandidateSetOnly, nil)
+	ErrMsgDSCandidateValidateOnly          = NewMessageError(CodeMsgDSCandidateValidateOnly, nil)
+	ErrMsgDSCandidateDiffOnly              = NewMessageError(CodeMsgDSCandidateDiffOnly, nil)
+	ErrMsgDSSpecNotAllowedForUnknownMethod = NewMessageError(CodeMsgDSSpecNotAllowedForUnknownMethod, nil)
+	ErrMsgCLISettingMethod                 = NewMessageError(CodeMsgCLISettingMethod, nil)
+	ErrMsgCLIAddingCmdsInReq               = NewMessageError(CodeMsgCLIAddingCmdsInReq, nil)
+	ErrMsgCLISettingOutFormat              = NewMessageError(CodeMsgCLISettingOutFormat, nil)
+	ErrMsgCLIMarshalling                   = NewMessageError(CodeMsgCLIMarshalling, nil)
+	ErrMsgRespMarshalling                  = NewMessageError(CodeMsgRespMarshalling, nil)
+	ErrMsgReqSettingConfirmTimeout         = NewMessageError(CodeMsgReqSettingConfirmTimeout, nil)
+	ErrMsgReqSettingDSParams               = NewMessageError(CodeMsgReqSettingDSParams, nil)
 )
 
 type ClientError struct {
@@ -75,64 +147,73 @@ type ClientError struct {
 
 func (e ClientError) Error() string {
 	var m string
-	f := strings.TrimSpace(e.CltFunction)
-	f = strings.ToLower(string(f[0])) + f[1:]
+	// f := strings.TrimSpace(e.CltFunction)
+	// f = strings.ToLower(string(f[0])) + f[1:]
 
 	switch e.Code {
-	case ErrClntUndefined:
-		m = "undefined error"
-	case ErrClntNoHost:
-		m = "host is not set, but mandatory"
-	case ErrClntTargetVerification:
-		m = "target verification error"
-	case ErrClntMarshalling:
-		m = "marshalling error"
-	case ErrClntHTTPReqCreation:
-		m = "HTTP request creation error"
-	case ErrClntHTTPSend:
-		m = "HTTP sending error"
-	case ErrClntHTTPStatus:
-		m = "HTTP status error"
-	case ErrClntJSONUnmarshalling:
-		m = "JSON unmarshalling error"
-	case ErrClntIDMismatch:
-		m = "request and response IDs do not match"
-	case ErrClntJSONRPC:
-		m = "JSON-RPC error"
-	case ErrClntCmdCreation:
-		m = "command creation error"
-	case ErrClntRPCReqCreation:
-		m = "RPC request creation error"
-	case ErrClntActNONE:
-		m = "action can't be NONE"
-	case ErrClntActUnsupported:
-		m = "unsupported action specified"
-	case ErrClntNoPort:
-		m = "port could not be nil"
-	case ErrClntNoUsername:
-		m = "username could not be nil"
-	case ErrClntNoPassword:
-		m = "password could not be nil"
-	case ErrClntTLSFilesUnspecified:
-		m = "one of more files for rootCA / certificate / key are not specified"
-	case ErrClntTLSFOpenCA:
-		m = "failed to open rootCA file"
-	case ErrClntTLSLoadCAPEM:
-		m = "can't load PEM file for rootCA"
-	case ErrClntTLSLoadCertPair:
-		m = "can't load PEM file for certificate / key pair"
-	case ErrClntTLSCertParsing:
-		m = "certificate parsing error"
-	case ErrClntCBFuncLowerThanCT:
-		m = "callback timeout must be lower than confirm timeout"
-	case ErrClntCBFuncIsNil:
-		m = "callback function is nil"
-	case ErrClntCBFuncExec:
-		m = "callback function execution error"
+	case CodeClntUndefined, CodeClntNoHost, CodeClntTargetVerification, CodeClntReqMarshalling,
+		CodeClntHTTPReqCreation, CodeClntHTTPSend, CodeClntHTTPStatus, CodeClntRespJSONUnmarshalling,
+		CodeClntIDMismatch, CodeClntJSONRPCResp, CodeClntCmdCreation, CodeClntRPCReqCreation, CodeClntActNONE,
+		CodeClntActUnsupported, CodeClntNoPort, CodeClntNoUsername, CodeClntNoPassword, CodeClntTLSFilesUnspecified,
+		CodeClntTLSFOpenCA, CodeClntTLSLoadCAPEM, CodeClntTLSLoadCertPair, CodeClntTLSCertParsing, CodeClntCBFuncLowerThanCT,
+		CodeClntCBFuncIsNil, CodeClntCBFuncExec, CodeClntDatastoreUnsupported:
+		m = e.Code.String()
+	// case CodeClntUndefined:
+	// 	m = "undefined error"
+	// case CodeClntNoHost:
+	// 	m = "host is not set, but mandatory"
+	// case CodeClntTargetVerification:
+	// 	m = "target verification error"
+	// case CodeClntMarshalling:
+	// 	m = "marshalling error"
+	// case CodeClntHTTPReqCreation:
+	// 	m = "HTTP request creation error"
+	// case CodeClntHTTPSend:
+	// 	m = "HTTP sending error"
+	// case CodeClntHTTPStatus:
+	// 	m = "HTTP status error"
+	// case CodeClntJSONUnmarshalling:
+	// 	m = "JSON unmarshalling error"
+	// case CodeClntIDMismatch:
+	// 	m = "request and response IDs do not match"
+	// case CodeClntJSONRPC:
+	// 	m = "JSON-RPC error"
+	// case CodeClntCmdCreation:
+	// 	m = "command creation error"
+	// case CodeClntRPCReqCreation:
+	// 	m = "RPC request creation error"
+	// case CodeClntActNONE:
+	// 	m = "action can't be NONE"
+	// case CodeClntActUnsupported:
+	// 	m = "unsupported action specified"
+	// case CodeClntNoPort:
+	// 	m = "port could not be nil"
+	// case CodeClntNoUsername:
+	// 	m = "username could not be nil"
+	// case CodeClntNoPassword:
+	// 	m = "password could not be nil"
+	// case CodeClntTLSFilesUnspecified:
+	// 	m = "one of more files for rootCA / certificate / key are not specified"
+	// case CodeClntTLSFOpenCA:
+	// 	m = "failed to open rootCA file"
+	// case CodeClntTLSLoadCAPEM:
+	// 	m = "can't load PEM file for rootCA"
+	// case CodeClntTLSLoadCertPair:
+	// 	m = "can't load PEM file for certificate / key pair"
+	// case CodeClntTLSCertParsing:
+	// 	m = "certificate parsing error"
+	// case CodeClntCBFuncLowerThanCT:
+	// 	m = "callback timeout must be lower than confirm timeout"
+	// case CodeClntCBFuncIsNil:
+	// 	m = "callback function is nil"
+	// case CodeClntCBFuncExec:
+	// 	m = "callback function execution error"
+	// case CodeClntDatastoreUnsupported:
+	// 	m = "datastore is not supported for this method"
 	default:
 		m = "incorrect code error"
 	}
-	return fmt.Sprintf("%s: %s", f, m)
+	return m
 }
 
 func (e ClientError) Is(target error) bool {
@@ -141,16 +222,14 @@ func (e ClientError) Is(target error) bool {
 	}
 
 	if x, ok := target.(ClientError); ok {
-		if x.Err == nil && e.Err == nil || x.Err != nil && e.Err != nil {
-			return x.CltFunction == e.CltFunction && x.Code == e.Code && x.Err.Error() == e.Err.Error()
-		}
-		return x.CltFunction == e.CltFunction && x.Code == e.Code
+		return x.Code == e.Code
+	} else {
+		return errors.Is(e.Err, target)
 	}
-	return false
 }
 
 func (e ClientError) As(target interface{}) bool {
-	return errors.As(e.Err, target)
+	return errors.As(e, target)
 }
 
 func (e ClientError) Unwrap() error {
@@ -165,61 +244,69 @@ type MessageError struct {
 
 func (e MessageError) Error() string {
 	var m string
-	f := strings.TrimSpace(e.MsgFunction)
-	f = strings.ToLower(string(f[0])) + f[1:]
+	// f := strings.TrimSpace(e.MsgFunction)
+	// f = strings.ToLower(string(f[0])) + f[1:]
 	switch e.Code {
-	case ErrMsgCmdCreation:
-		m = "command creation error"
-	case ErrMsgSetNotAllowedActForTools:
-		m = "no delete or replace actions allowed for method set and datastore TOOLS"
-	case ErrMsgSettingMethod:
-		m = "error setting method"
-	case ErrMsgReqAddingCmds:
-		m = "error adding commands in request"
-	case ErrMsgReqMarshalling:
-		m = "marshalling error"
-	case ErrMsgReqSettingOutFormat:
-		m = "output format can't be set on request"
-	case ErrMsgGettingMethod:
-		m = "error getting method"
-	case ErrMsgYANGSpecNotAllowed:
-		m = "yang models specification on Request.Params level is not supported for method"
-	case ErrMsgReqSettingYMParams:
-		m = "error setting yang models specification on Request.Params level"
-	case ErrMsgReqGetDSNotAllowed:
-		m = "datastore is not allowed for method get"
-	case ErrMsgReqSetSettingAction:
-		m = "error setting action"
-	case ErrMsgDSCandidateUpdateNoValue:
-		m = "value isn't specified or not found in the path for method set and datastore CANDIDATE"
-	case ErrMsgDSToolsSetUpdateOnly:
-		m = "only update action is allowed with TOOLS datastore for method set"
-	case ErrMsgDSToolsCandidateSetOnly:
-		m = "only CANDIDATE and TOOLS datastores allowed for method set"
-	case ErrMsgDSCandidateValidateOnly:
-		m = "only CANDIDATE datastore allowed for method validate"
-	case ErrMsgDSCandidateDiffOnly:
-		m = "only CANDIDATE datastore allowed for method diff"
-	case ErrMsgDSSpecNotAllowedForUnknownMethod:
-		m = "datastore specification on Request.Params level is not supported for unknown method"
-	case ErrMsgCLISettingMethod:
-		m = "error setting method"
-	case ErrMsgCLIAddingCmdsInReq:
-		m = "error adding commands in request"
-	case ErrMsgCLISettingOutFormat:
-		m = "output format can't be set on request"
-	case ErrMsgCLIMarshalling:
-		m = "marshalling error"
-	case ErrMsgRespMarshalling:
-		m = "marshalling error"
-	case ErrMsgReqSettingConfirmTimeout:
-		m = "error setting confirm timeout"
-	case ErrMsgReqSettingDSParams:
-		m = "error setting datastore parameters, check underlying error"
+	case CodeMsgUndefined, CodeMsgCmdCreation, CodeMsgSetNotAllowedActForTools, CodeMsgSettingMethod,
+		CodeMsgReqAddingCmds, CodeMsgReqMarshalling, CodeMsgReqSettingOutFormat, CodeMsgGettingMethod,
+		CodeMsgYANGSpecNotAllowed, CodeMsgReqSettingYMParams, CodeMsgReqGetDSNotAllowed, CodeMsgReqSetSettingAction,
+		CodeMsgDSCandidateUpdateNoValue, CodeMsgDSToolsSetUpdateOnly, CodeMsgDSToolsCandidateSetOnly,
+		CodeMsgDSCandidateValidateOnly, CodeMsgDSCandidateDiffOnly, CodeMsgDSSpecNotAllowedForUnknownMethod,
+		CodeMsgCLISettingMethod, CodeMsgCLIAddingCmdsInReq, CodeMsgCLISettingOutFormat, CodeMsgCLIMarshalling,
+		CodeMsgRespMarshalling, CodeMsgReqSettingConfirmTimeout, CodeMsgReqSettingDSParams:
+		m = e.Code.String()
+	// case CodeMsgCmdCreation:
+	// 	m = "command creation error"
+	// case CodeMsgSetNotAllowedActForTools:
+	// 	m = "no delete or replace actions allowed for method set and datastore TOOLS"
+	// case CodeMsgSettingMethod:
+	// 	m = "error setting method"
+	// case CodeMsgReqAddingCmds:
+	// 	m = "error adding commands in request"
+	// case CodeMsgReqMarshalling:
+	// 	m = "marshalling error"
+	// case CodeMsgReqSettingOutFormat:
+	// 	m = "output format can't be set on request"
+	// case CodeMsgGettingMethod:
+	// 	m = "error getting method"
+	// case CodeMsgYANGSpecNotAllowed:
+	// 	m = "yang models specification on Request.Params level is not supported for method"
+	// case CodeMsgReqSettingYMParams:
+	// 	m = "error setting yang models specification on Request.Params level"
+	// case CodeMsgReqGetDSNotAllowed:
+	// 	m = "datastore is not allowed for method get"
+	// case CodeMsgReqSetSettingAction:
+	// 	m = "error setting action"
+	// case CodeMsgDSCandidateUpdateNoValue:
+	// 	m = "value isn't specified or not found in the path for method set and datastore CANDIDATE"
+	// case CodeMsgDSToolsSetUpdateOnly:
+	// 	m = "only update action is allowed with TOOLS datastore for method set"
+	// case CodeMsgDSToolsCandidateSetOnly:
+	// 	m = "only CANDIDATE and TOOLS datastores allowed for method set"
+	// case CodeMsgDSCandidateValidateOnly:
+	// 	m = "only CANDIDATE datastore allowed for method validate"
+	// case CodeMsgDSCandidateDiffOnly:
+	// 	m = "only CANDIDATE datastore allowed for method diff"
+	// case CodeMsgDSSpecNotAllowedForUnknownMethod:
+	// 	m = "datastore specification on Request.Params level is not supported for unknown method"
+	// case CodeMsgCLISettingMethod:
+	// 	m = "error setting method"
+	// case CodeMsgCLIAddingCmdsInReq:
+	// 	m = "error adding commands in request"
+	// case CodeMsgCLISettingOutFormat:
+	// 	m = "output format can't be set on request"
+	// case CodeMsgCLIMarshalling:
+	// 	m = "marshalling error"
+	// case CodeMsgRespMarshalling:
+	// 	m = "marshalling error"
+	// case CodeMsgReqSettingConfirmTimeout:
+	// 	m = "error setting confirm timeout"
+	// case CodeMsgReqSettingDSParams:
+	// 	m = "error setting datastore parameters, check underlying error"
 	default:
 		m = "incorrect code error"
 	}
-	return fmt.Sprintf("%s(): %s", f, m)
+	return m
 }
 
 func (e MessageError) Is(target error) bool {
@@ -228,16 +315,14 @@ func (e MessageError) Is(target error) bool {
 	}
 
 	if x, ok := target.(MessageError); ok {
-		if x.Err == nil && e.Err == nil || x.Err != nil && e.Err != nil {
-			return x.MsgFunction == e.MsgFunction && x.Code == e.Code && x.Err.Error() == e.Err.Error()
-		}
-		return x.MsgFunction == e.MsgFunction && x.Code == e.Code
+		return x.Code == e.Code
+	} else {
+		return errors.Is(e.Err, target)
 	}
-	return false
 }
 
 func (e MessageError) As(target interface{}) bool {
-	return errors.As(e.Err, target)
+	return errors.As(e, target)
 }
 
 func (e MessageError) Unwrap() error {
