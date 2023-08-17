@@ -3,7 +3,7 @@ package formats
 import "fmt"
 
 // EnumOutputFormats is an enumeration type of output formats.
-type EnumOutputFormats int
+type EnumOutputFormats string
 
 // Valid enumeration EnumOutputFormats:
 // JSON - JSON format
@@ -11,9 +11,9 @@ type EnumOutputFormats int
 // TABLE - Table format
 // By default we use JSON output format, which is empty string OR "json" string in case specified explicitly.
 const (
-	JSON EnumOutputFormats = iota
-	TEXT
-	TABLE
+	JSON  EnumOutputFormats = "json"
+	TEXT  EnumOutputFormats = "text"
+	TABLE EnumOutputFormats = "table"
 )
 
 // Error messages for the OutputFormat class.
@@ -32,12 +32,14 @@ type OutputFormat struct {
 func (of *OutputFormat) GetFormat() (EnumOutputFormats, error) {
 	var rf EnumOutputFormats
 	switch of.OutputFormat {
-	case "json":
-		rf = JSON
-	case "text":
-		rf = TEXT
-	case "table":
-		rf = TABLE
+	case "json", "text", "table":
+		rf = EnumOutputFormats(of.OutputFormat)
+	// case "json":
+	// 	rf = JSON
+	// case "text":
+	// 	rf = TEXT
+	// case "table":
+	// 	rf = TABLE
 	case "":
 		rf = JSON
 	default:
@@ -49,12 +51,14 @@ func (of *OutputFormat) GetFormat() (EnumOutputFormats, error) {
 // SetFormat sets the output format type and non nil error if provided output format is not correct.
 func (of *OutputFormat) SetFormat(ofs EnumOutputFormats) error {
 	switch ofs {
-	case JSON:
-		of.OutputFormat = "json"
-	case TEXT:
-		of.OutputFormat = "text"
-	case TABLE:
-		of.OutputFormat = "table"
+	case JSON, TEXT, TABLE:
+		of.OutputFormat = string(ofs)
+	// case JSON:
+	// 	of.OutputFormat = "json"
+	// case TEXT:
+	// 	of.OutputFormat = "text"
+	// case TABLE:
+	// 	of.OutputFormat = "table"
 	default:
 		return fmt.Errorf(SetErrMsg)
 	}
