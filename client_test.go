@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -79,19 +78,7 @@ func TestNewJSONRPCClient(t *testing.T) {
 	for _, td := range defTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := srljrpc.NewJSONRPCClient(td.host, td.opts...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -122,19 +109,7 @@ func TestNewJSONRPCClient(t *testing.T) {
 	for _, td := range certTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := srljrpc.NewJSONRPCClient(td.host, td.opts...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -158,29 +133,14 @@ func TestNewJSONRPCClient(t *testing.T) {
 		errMsg   string
 	}{
 		{testName: "Creating client with valid TLS inputs but ca_cert is incorrect",
-			host: &icaIP.Host,
-			opts: []srljrpc.ClientOption{srljrpc.WithOptCredentials(&icaIP.Username, &icaIP.Password), srljrpc.WithOptPort(&icaIP.Port), srljrpc.WithOptTLS(&icaIP.TLSAttr)},
-			expErr: apierr.ClientError{
-				CltFunction: "NewJSONRPCClient",
-				Code:        apierr.ErrClntTargetVerification,
-			}}, // should fail, CA cert is incorrect
+			host:   &icaIP.Host,
+			opts:   []srljrpc.ClientOption{srljrpc.WithOptCredentials(&icaIP.Username, &icaIP.Password), srljrpc.WithOptPort(&icaIP.Port), srljrpc.WithOptTLS(&icaIP.TLSAttr)},
+			expErr: apierr.ErrClntTargetVerification}, // should fail, CA cert is incorrect
 	}
 	for _, td := range icaTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := srljrpc.NewJSONRPCClient(td.host, td.opts...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -201,28 +161,14 @@ func TestGet(t *testing.T) {
 			expErr: nil,
 		}, // should succeed
 		{testName: "Get against RUNNING datastore with default target and invalid path",
-			paths: []string{"/system/json-rpc-server/invalid"},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC},
+			paths:  []string{"/system/json-rpc-server/invalid"},
+			expErr: apierr.ErrClntJSONRPCResp,
 		}, // should fail, invalid path
 	}
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Get(td.paths...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -243,28 +189,14 @@ func TestState(t *testing.T) {
 			expErr: nil,
 		}, // should succeed
 		{testName: "Get with default target and invalid path",
-			paths: []string{"/lldp/statistics/invalid"},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC},
+			paths:  []string{"/lldp/statistics/invalid"},
+			expErr: apierr.ErrClntJSONRPCResp,
 		}, // should fail, invalid path
 	}
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.State(td.paths...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -290,18 +222,14 @@ func TestUpdate(t *testing.T) {
 		{testName: "Set Update against CANDIDATE datastore with default target and invalid path",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/invalid", srljrpc.CommandValue("test")}},
-			ct: 0,
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC},
+			ct:     0,
+			expErr: apierr.ErrClntJSONRPCResp,
 		}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with default target and missed value",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")}},
-			ct: 0,
-			expErr: apierr.ClientError{
-				CltFunction: "Update",
-				Code:        apierr.ErrClntRPCReqCreation},
+			ct:     0,
+			expErr: apierr.ErrClntRPCReqCreation,
 		}, // should fail, missed value
 		{testName: "Set Update against CANDIDATE datastore with default target and confirm timeout",
 			pvs: []srljrpc.PV{
@@ -315,19 +243,7 @@ func TestUpdate(t *testing.T) {
 	for n, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Update(td.ct, td.pvs...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 			if n == 3 { // test with confirm timeout
 				t.Logf("Set Update against CANDIDATE datastore with default target and confirm timeout => Waiting for 1 seconds...")
 				time.Sleep(1 * time.Second)
@@ -410,9 +326,8 @@ func TestBulkSet(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("TestBulkSetCandidate")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
+			expErr: apierr.ErrClntJSONRPCResp, // should fail, invalid path
+		},
 		{testName: "Set Update against CANDIDATE datastore with OC target and missed value",
 			delete: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("")},
@@ -425,27 +340,13 @@ func TestBulkSet(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("TestBulkSetCandidate")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "BulkSetCandidate",
-				Code:        apierr.ErrClntRPCReqCreation,
-			}}, // should fail, missed value
+			expErr: apierr.ErrClntRPCReqCreation, // should fail, missed value
+		},
 	}
 	for _, td := range setOCTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkSet(td.delete, td.replace, td.update, yms.OC, 0) // ct set to 0 to avoid confirm timeout
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -482,9 +383,7 @@ func TestBulkSet(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("System loopback")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
+			expErr: apierr.ErrClntJSONRPCResp}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with SRL default target and missed value",
 			delete: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")},
@@ -496,27 +395,12 @@ func TestBulkSet(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("System loopback")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "BulkSetCandidate",
-				Code:        apierr.ErrClntRPCReqCreation,
-			}}, // should fail, missed value
+			expErr: apierr.ErrClntRPCReqCreation}, // should fail, missed value
 	}
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkSet(td.delete, td.replace, td.update, yms.SRL, 0) // ct set to 0 to avoid confirm timeout
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -649,19 +533,7 @@ func TestBulkSetCallBack(t *testing.T) {
 			}
 			// Getting error from channel.
 			err = <-chErr
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -703,9 +575,7 @@ func TestBulkDiff(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("TestBulkSetCandidate")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
+			expErr: apierr.ErrClntJSONRPCResp}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with OC target and missed value",
 			delete: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("")},
@@ -718,27 +588,12 @@ func TestBulkDiff(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interfaces/interface[name=ethernet-1/2]/config/description", srljrpc.CommandValue("TestBulkSetCandidate")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "BulkDiffCandidate",
-				Code:        apierr.ErrClntRPCReqCreation,
-			}}, // should fail, missed value
+			expErr: apierr.ErrClntRPCReqCreation}, // should fail, missed value
 	}
 	for _, td := range setOCTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkDiff(td.delete, td.replace, td.update, yms.OC)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -775,9 +630,7 @@ func TestBulkDiff(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("System loopback")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC}}, // should fail, invalid path
+			expErr: apierr.ErrClntJSONRPCResp}, // should fail, invalid path
 		{testName: "Set Update against CANDIDATE datastore with SRL default target and missed value",
 			delete: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")},
@@ -789,27 +642,13 @@ func TestBulkDiff(t *testing.T) {
 			update: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("System loopback")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "BulkDiffCandidate",
-				Code:        apierr.ErrClntRPCReqCreation,
-			}}, // should fail, missed value
+			expErr: apierr.ErrClntRPCReqCreation}, // should fail, missed value
 	}
+
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.BulkDiff(td.delete, td.replace, td.update, yms.SRL)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 
@@ -831,28 +670,14 @@ func TestReplace(t *testing.T) {
 			expErr: nil,
 		}, // should succeed
 		{testName: "Set Replace against CANDIDATE datastore with default target and invalid path",
-			pvs: []srljrpc.PV{{"/interface[name=system0]/invalid:test", srljrpc.CommandValue("")}},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC},
+			pvs:    []srljrpc.PV{{"/interface[name=system0]/invalid:test", srljrpc.CommandValue("")}},
+			expErr: apierr.ErrClntJSONRPCResp,
 		}, // should fail, invalid path
 	}
 	for _, td := range getTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Replace(0, td.pvs...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -873,28 +698,14 @@ func TestDelete(t *testing.T) {
 			expErr: nil,
 		}, // should succeed
 		{testName: "Delete against CANDIDATE datastore with default target and invalid path",
-			paths: []string{"/interface[name=system0]/invalid"},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC},
+			paths:  []string{"/interface[name=system0]/invalid"},
+			expErr: apierr.ErrClntJSONRPCResp,
 		}, // should fail, invalid path
 	}
 	for _, td := range setTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Delete(0, td.paths...) // ct set to 0 to avoid confirm timeout
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -919,35 +730,19 @@ func TestValidate(t *testing.T) {
 		{testName: "Validate against CANDIDATE datastore with default target and invalid path",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/invalid", srljrpc.CommandValue("test")}},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC},
+			expErr: apierr.ErrClntJSONRPCResp,
 		}, // should fail, invalid path
 		{testName: "Validate against CANDIDATE datastore with default target and missed value",
 			pvs: []srljrpc.PV{
 				{"/interface[name=system0]/description", srljrpc.CommandValue("")}},
-			expErr: apierr.ClientError{
-				CltFunction: "Validate",
-				Code:        apierr.ErrClntRPCReqCreation},
+			expErr: apierr.ErrClntRPCReqCreation,
 		}, // should fail, missed value
 	}
 
 	for _, td := range validateTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Validate(actions.UPDATE, td.pvs...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -971,35 +766,19 @@ func TestTools(t *testing.T) {
 			pvs: []srljrpc.PV{
 				{"/interface[name=ethernet-1/1]/ethernet/INVALID/clear", srljrpc.CommandValue("")},
 			},
-			expErr: apierr.ClientError{
-				CltFunction: "Do",
-				Code:        apierr.ErrClntJSONRPC},
+			expErr: apierr.ErrClntJSONRPCResp,
 		}, // should fail, invalid path
 		{testName: "Set against TOOLS with double value",
 			pvs: []srljrpc.PV{
 				{"/network-instance[name=default]/protocols/bgp/group[group-name=underlay]/soft-clear/peer-as:65020", srljrpc.CommandValue("65020")}},
-			expErr: apierr.ClientError{
-				CltFunction: "Tools",
-				Code:        apierr.ErrClntRPCReqCreation},
+			expErr: apierr.ErrClntRPCReqCreation,
 		}, // should fail, value specified two times
 	}
 
 	for _, td := range toolsTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			_, err := c.Tools(td.pvs...)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if err.Error() != td.expErr.Error() {
-					t.Errorf("got: %s, while should be: %v", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf("got: %v, while should be: %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			default:
-				t.Errorf("got: %s, while should be: %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 		})
 	}
 }
@@ -1035,19 +814,7 @@ func TestCLI(t *testing.T) {
 	for _, td := range cliDoTestData {
 		t.Run(td.testName, func(t *testing.T) {
 			r, err := c.Do(td.cliReq)
-			switch {
-			case err == nil && td.expErr == nil:
-			case err != nil && td.expErr != nil:
-				if !strings.Contains(err.Error(), td.expErr.Error()) {
-					t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
-				}
-			case err == nil && td.expErr != nil:
-				t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
-			case err != nil && td.expErr == nil:
-				t.Errorf(td.errMsg+"got %+s, while should be %s", err, td.expErr)
-			default:
-				t.Errorf(td.errMsg+"got %s, while should be %s", err, td.expErr)
-			}
+			checkErrGotVSExp(err, td.expErr, t)
 			_, err = r.Marshal()
 			if err != nil {
 				t.Fatalf("can't marshal response: %v", err)
@@ -1072,30 +839,16 @@ func TestCLI(t *testing.T) {
 				expErr: nil,
 			}, // should succeed
 			{testName: "CLI bulk via CLI() with empty commands",
-				cmds: []string{"show version", "", "show acl summary"},
-				of:   formats.TEXT,
-				expErr: apierr.ClientError{
-					CltFunction: "CLI",
-					Code:        apierr.ErrClntRPCReqCreation},
+				cmds:   []string{"show version", "", "show acl summary"},
+				of:     formats.TEXT,
+				expErr: apierr.ErrClntRPCReqCreation,
 			}, // should fail, empty command
 		}
 		// CLI with default target using CLI()
 		for _, td := range cliTestData {
 			t.Run(td.testName, func(t *testing.T) {
 				r, err := c.CLI(td.cmds, td.of)
-				switch {
-				case err == nil && td.expErr == nil:
-				case err != nil && td.expErr != nil:
-					if err.Error() != td.expErr.Error() {
-						t.Errorf("got: %s, while should be: %v", err, td.expErr)
-					}
-				case err == nil && td.expErr != nil:
-					t.Errorf("got: %v, while should be: %s", err, td.expErr)
-				case err != nil && td.expErr == nil:
-					t.Errorf("got: %s, while should be: %s", err, td.expErr)
-				default:
-					t.Errorf("got: %s, while should be: %s", err, td.expErr)
-				}
+				checkErrGotVSExp(err, td.expErr, t)
 				_, err = r.Marshal()
 				if err != nil {
 					t.Fatalf("can't marshal response: %v", err)
@@ -1163,8 +916,8 @@ func helperGetOCClient(t *testing.T) *srljrpc.JSONRPCClient {
 	c, err := srljrpc.NewJSONRPCClient(&ocIP.Host, srljrpc.WithOptCredentials(&ocIP.Username, &ocIP.Password), srljrpc.WithOptPort(&ocIP.Port))
 	if err != nil {
 		uerr := err.(apierr.ClientError).Unwrap().Error()
-		t.Logf(uerr)
 		t.Fatalf("can't create client: %v", err)
+		t.Logf("underlying error: %v", uerr)
 	}
 	return c
 }
