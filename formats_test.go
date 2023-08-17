@@ -1,4 +1,4 @@
-//go:build !integration
+//go:build unit
 
 package srljrpc_test
 
@@ -28,8 +28,8 @@ func TestFormats(t *testing.T) {
 		{testName: "Setting format to JSON", format: formats.JSON, expErrSet: nil, expErrGet: nil, errMsg: "format JSON isn't set properly: "},
 		{testName: "Setting format to TEXT", format: formats.TEXT, expErrSet: nil, expErrGet: nil, errMsg: "format TEXT isn't set properly: "},
 		{testName: "Setting format to TABLE", format: formats.TABLE, expErrSet: nil, expErrGet: nil, errMsg: "format TABLE isn't set properly: "},
-		{testName: "Setting format to non existent format 100", format: formats.EnumOutputFormats(100), expErrSet: fmt.Errorf(formats.SetErrMsg),
-			expErrGet: nil, errMsg: "fake format 100 was handled incorrectly: "},
+		{testName: "Setting format to non existent format bar", format: formats.EnumOutputFormats("bar"), expErrSet: fmt.Errorf(formats.SetErrMsg),
+			expErrGet: nil, errMsg: "fake format bar was handled incorrectly: "},
 	}
 
 	for _, td := range testData {
