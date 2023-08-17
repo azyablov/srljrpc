@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -76,11 +76,7 @@ func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error
 	c.target = &JSONRPCTarget{}
 	// host
 	if host == nil {
-		return nil, apierr.ClientError{
-			CltFunction: "NewJSONRPCClient",
-			Code:        apierr.ErrClntNoHost,
-			Err:         nil,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntNoHost, nil)
 	}
 	c.target.host = host
 
@@ -113,11 +109,7 @@ func NewJSONRPCClient(host *string, opts ...ClientOption) (*JSONRPCClient, error
 	// verify target validity and availability
 	err = c.targetVerification()
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "NewJSONRPCClient",
-			Code:        apierr.ErrClntTargetVerification,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntTargetVerification, err)
 	}
 
 	return c, nil
@@ -137,20 +129,12 @@ func (c *JSONRPCClient) GetHostname() string {
 func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 	body, err := r.Marshal()
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Do",
-			Code:        apierr.ErrClntMarshalling,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntReqMarshalling, err)
 	}
 
 	reqHTTP, err := http.NewRequest("POST", fmt.Sprintf("https://%s:%v/jsonrpc", *c.target.host, *c.target.port), bytes.NewBuffer(body))
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Do",
-			Code:        apierr.ErrClntHTTPReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntHTTPReqCreation, err)
 	}
 
 	// setting content type and authentication header
@@ -159,44 +143,25 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 
 	resp, err := c.client.Do(reqHTTP)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Do",
-			Code:        apierr.ErrClntHTTPSend,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntHTTPSend, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, apierr.ClientError{
-			CltFunction: "Do",
-			Code:        apierr.ErrClntHTTPStatus,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntHTTPStatus, fmt.Errorf("HTTP status: %s", resp.Status))
 	}
+
 	rpcResp := Response{}
 	err = json.NewDecoder(resp.Body).Decode(&rpcResp)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Do",
-			Code:        apierr.ErrClntJSONUnmarshalling,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRespJSONUnmarshalling, err)
 	}
 	if rpcResp.GetID() != r.GetID() {
-		return nil, apierr.ClientError{
-			CltFunction: "Do",
-			Code:        apierr.ErrClntIDMismatch,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntIDMismatch, nil)
 	}
 
 	if rpcResp.Error != nil {
-		return &rpcResp, apierr.ClientError{
-			CltFunction: "Do",
-			Code:        apierr.ErrClntJSONRPC,
-			Err:         err,
-		}
+		return &rpcResp, apierr.NewClientError(apierr.CodeClntJSONRPCResp, nil)
 	}
 
 	return &rpcResp, nil
@@ -204,54 +169,36 @@ func (c *JSONRPCClient) Do(r Requester) (*Response, error) {
 
 // Get method of JSONRPCClient. Executes a GET request against RUNNING datastore.
 func (c *JSONRPCClient) Get(paths ...string) (*Response, error) {
-	opts := []CommandOption{WithDatastore(datastores.RUNNING)}
-	var cmds []*Command
-	for _, path := range paths {
-		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
-		if err != nil {
-			return nil, apierr.ClientError{
-				CltFunction: "Get",
-				Code:        apierr.ErrClntCmdCreation,
-				Err:         err,
-			}
-		}
-		cmds = append(cmds, cmd)
-
-	}
-	// create the request
-	r, err := NewRequest(methods.GET, cmds)
-	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Get",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
-	}
-	return c.Do(r)
+	return c.get(datastores.RUNNING, paths...)
 }
 
 // Get state method of JSONRPCClient. Executes a GET request against STATE datastore.
 func (c *JSONRPCClient) State(paths ...string) (*Response, error) {
-	opts := []CommandOption{WithDatastore(datastores.STATE)}
+	return c.get(datastores.STATE, paths...)
+}
+
+// Generic get method of JSONRPCClient. Executes a GET request against specified datastore, facilitates Get and State methods.
+func (c *JSONRPCClient) get(ds datastores.EnumDatastores, paths ...string) (*Response, error) {
+	var opts []CommandOption
+	switch ds {
+	case datastores.RUNNING:
+		opts = []CommandOption{WithDatastore(datastores.RUNNING)}
+	case datastores.STATE:
+		opts = []CommandOption{WithDatastore(datastores.STATE)}
+	default:
+		return nil, apierr.NewClientError(apierr.CodeClntDatastoreUnsupported, nil)
+	}
 	var cmds []*Command
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.NONE, path, CommandValue(""), opts...)
 		if err != nil {
-			return nil, apierr.ClientError{
-				CltFunction: "State",
-				Code:        apierr.ErrClntCmdCreation,
-				Err:         err,
-			}
+			return nil, apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 		}
 		cmds = append(cmds, cmd)
 	}
 	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "State",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -264,11 +211,7 @@ func (c *JSONRPCClient) Update(ct int, pvs ...PV) (*Response, error) {
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
 		if err != nil {
-			return nil, apierr.ClientError{
-				CltFunction: "Update",
-				Code:        apierr.ErrClntCmdCreation,
-				Err:         err,
-			}
+			return nil, apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 		}
 
 		cmds = append(cmds, cmd)
@@ -283,11 +226,7 @@ func (c *JSONRPCClient) Update(ct int, pvs ...PV) (*Response, error) {
 		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE), WithConfirmTimeout(ct))
 	}
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Update",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -300,11 +239,7 @@ func (c *JSONRPCClient) Replace(ct int, pvs ...PV) (*Response, error) {
 	for _, pv := range pvs {
 		cmd, err := NewCommand(actions.REPLACE, pv.Path, pv.Value)
 		if err != nil {
-			return nil, apierr.ClientError{
-				CltFunction: "Replace",
-				Code:        apierr.ErrClntCmdCreation,
-				Err:         err,
-			}
+			return nil, apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 		}
 
 		cmds = append(cmds, cmd)
@@ -319,11 +254,7 @@ func (c *JSONRPCClient) Replace(ct int, pvs ...PV) (*Response, error) {
 		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE), WithConfirmTimeout(ct))
 	}
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Replace",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -337,11 +268,7 @@ func (c *JSONRPCClient) Delete(ct int, paths ...string) (*Response, error) {
 	for _, path := range paths {
 		cmd, err := NewCommand(actions.DELETE, path, CommandValue(""))
 		if err != nil {
-			return nil, apierr.ClientError{
-				CltFunction: "Delete",
-				Code:        apierr.ErrClntCmdCreation,
-				Err:         err,
-			}
+			return nil, apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 		}
 
 		cmds = append(cmds, cmd)
@@ -356,11 +283,7 @@ func (c *JSONRPCClient) Delete(ct int, paths ...string) (*Response, error) {
 		r, err = NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.CANDIDATE), WithConfirmTimeout(ct))
 	}
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Delete",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -378,25 +301,13 @@ func (c *JSONRPCClient) DiffCandidate(action actions.EnumActions, ym yms.EnumYmT
 	case actions.UPDATE:
 		update = pvs
 	case actions.NONE:
-		return nil, apierr.ClientError{
-			CltFunction: "DiffCandidate",
-			Code:        apierr.ErrClntActNONE,
-			Err:         nil,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntActNONE, nil)
 	default:
-		return nil, apierr.ClientError{
-			CltFunction: "DiffCandidate",
-			Code:        apierr.ErrClntActUnsupported,
-			Err:         nil,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntActUnsupported, nil)
 	}
 	r, err := NewDiffRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "DiffCandidate",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -408,11 +319,7 @@ func (c *JSONRPCClient) BulkSet(delete []PV, replace []PV, update []PV, ym yms.E
 	// build the request
 	r, err := NewSetRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE, ct)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "BulkSetCandidate",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -424,28 +331,16 @@ func (c *JSONRPCClient) BulkSet(delete []PV, replace []PV, update []PV, ym yms.E
 func (c *JSONRPCClient) BulkSetCallBack(delete []PV, replace []PV, update []PV, ym yms.EnumYmType, ct int, cbt int, cbf CallBackConfirm) (*Response, error) {
 	// check cbt is lower than ct anc ct > 0 (mandatory)
 	if ct <= cbt+1 && ct > 0 { // +1 to avoid 0
-		return nil, apierr.ClientError{
-			CltFunction: "BulkSetCallBack",
-			Code:        apierr.ErrClntCBFuncLowerThanCT,
-			Err:         nil,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntCBFuncLowerThanCT, nil)
 	}
 	// check if the callback is nil
 	if cbf == nil {
-		return nil, apierr.ClientError{
-			CltFunction: "BulkSetCallBack",
-			Code:        apierr.ErrClntCBFuncIsNil,
-			Err:         nil,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntCBFuncIsNil, nil)
 	}
 	// build the request
 	req, err := NewSetRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE, ct)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "BulkSetCallBack",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	// execute the request
 	c.mux.Lock()
@@ -462,11 +357,7 @@ func (c *JSONRPCClient) BulkSetCallBack(delete []PV, replace []PV, update []PV, 
 	// execute the callback
 	confirm, err := cbf(req, resp)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "BulkSetCallBack",
-			Code:        apierr.ErrClntCBFuncExec,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntCBFuncExec, err)
 	}
 	if confirm {
 		_, err := c.Tools(PV{Path: "/system/configuration/confirmed-accept", Value: CommandValue("")})
@@ -484,11 +375,7 @@ func (c *JSONRPCClient) BulkDiff(delete []PV, replace []PV, update []PV, ym yms.
 	// build the request
 	r, err := NewDiffRequest(delete, replace, update, ym, formats.JSON, datastores.CANDIDATE)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "BulkDiffCandidate",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -499,22 +386,14 @@ func (c *JSONRPCClient) Validate(action actions.EnumActions, pvs ...PV) (*Respon
 	for _, pv := range pvs {
 		cmd, err := NewCommand(action, pv.Path, pv.Value)
 		if err != nil {
-			return nil, apierr.ClientError{
-				CltFunction: "Validate",
-				Code:        apierr.ErrClntCmdCreation,
-				Err:         err,
-			}
+			return nil, apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 		}
 		cmds = append(cmds, cmd)
 	}
 
 	r, err := NewRequest(methods.VALIDATE, cmds, WithRequestDatastore(datastores.CANDIDATE))
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Validate",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -526,21 +405,13 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 		cmd, err := NewCommand(actions.UPDATE, pv.Path, CommandValue(pv.Value))
 		if err != nil {
 			//return nil, fmt.Errorf("tools(): %w", err)
-			return nil, apierr.ClientError{
-				CltFunction: "Tools",
-				Code:        apierr.ErrClntCmdCreation,
-				Err:         err,
-			}
+			return nil, apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 		}
 		cmds = append(cmds, cmd)
 	}
 	r, err := NewRequest(methods.SET, cmds, WithRequestDatastore(datastores.TOOLS))
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "Tools",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -549,11 +420,7 @@ func (c *JSONRPCClient) Tools(pvs ...PV) (*Response, error) {
 func (c *JSONRPCClient) CLI(cmds []string, of formats.EnumOutputFormats) (*Response, error) {
 	r, err := NewCLIRequest(cmds, of)
 	if err != nil {
-		return nil, apierr.ClientError{
-			CltFunction: "CLI",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return nil, apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 	return c.Do(r)
 }
@@ -594,28 +461,16 @@ func (c *JSONRPCClient) targetVerification() error {
 	// checking for the system version and hostname
 	hostnameCmd, err := NewCommand(actions.NONE, "/system/name/host-name", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
-		return apierr.ClientError{
-			CltFunction: "targetVerification",
-			Code:        apierr.ErrClntCmdCreation,
-			Err:         err,
-		}
+		return apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 	}
 	sysVerCmd, err := NewCommand(actions.NONE, "/system/information/version", CommandValue(""), WithDatastore(datastores.STATE))
 	if err != nil {
-		return apierr.ClientError{
-			CltFunction: "targetVerification",
-			Code:        apierr.ErrClntCmdCreation,
-			Err:         err,
-		}
+		return apierr.NewClientError(apierr.CodeClntCmdCreation, err)
 	}
 	cmds := []*Command{hostnameCmd, sysVerCmd}
 	r, err := NewRequest(methods.GET, cmds, nil)
 	if err != nil {
-		return apierr.ClientError{
-			CltFunction: "targetVerification",
-			Code:        apierr.ErrClntRPCReqCreation,
-			Err:         err,
-		}
+		return apierr.NewClientError(apierr.CodeClntRPCReqCreation, err)
 	}
 
 	rpcResp, err := c.Do(r)
@@ -625,11 +480,7 @@ func (c *JSONRPCClient) targetVerification() error {
 
 	var hostAndVer []string
 	if err = json.Unmarshal(rpcResp.Result, &hostAndVer); err != nil {
-		return apierr.ClientError{
-			CltFunction: "targetVerification",
-			Code:        apierr.ErrClntJSONUnmarshalling,
-			Err:         err,
-		}
+		return apierr.NewClientError(apierr.CodeClntRespJSONUnmarshalling, err)
 	}
 	c.hostname = hostAndVer[0]
 	c.sysVer = hostAndVer[1]
@@ -641,11 +492,7 @@ func (c *JSONRPCClient) targetVerification() error {
 func WithOptPort(port *int) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if port == nil {
-			return apierr.ClientError{
-				CltFunction: "WithOptPort",
-				Code:        apierr.ErrClntNoPort,
-				Err:         nil,
-			}
+			return apierr.NewClientError(apierr.CodeClntNoPort, nil)
 		}
 		c.target.port = port
 		return nil
@@ -664,19 +511,11 @@ func WithOptTimeout(t time.Duration) ClientOption {
 func WithOptCredentials(u, p *string) ClientOption {
 	return func(c *JSONRPCClient) error {
 		if u == nil {
-			return apierr.ClientError{
-				CltFunction: "WithOptCredentials",
-				Code:        apierr.ErrClntNoUsername,
-				Err:         nil,
-			}
+			return apierr.NewClientError(apierr.CodeClntNoUsername, nil)
 		}
 		c.target.username = u
 		if p == nil {
-			return apierr.ClientError{
-				CltFunction: "WithOptCredentials",
-				Code:        apierr.ErrClntNoPassword,
-				Err:         nil,
-			}
+			return apierr.NewClientError(apierr.CodeClntNoPassword, nil)
 		}
 		c.target.password = p
 		return nil
@@ -694,59 +533,36 @@ func WithOptTLS(t *TLSAttr) ClientOption {
 		if !*t.SkipVerify {
 			tlsConfig.ServerName = *c.target.host
 			if len(*t.CAFile) == 0 || (!(len(*t.CertFile) == 0) && len(*t.KeyFile) == 0) || (len(*t.CertFile) == 0 && !(len(*t.KeyFile) == 0)) {
-				return apierr.ClientError{
-					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrClntTLSFilesUnspecified,
-					Err:         nil,
-				}
+				return apierr.NewClientError(apierr.CodeClntTLSFilesUnspecified, nil)
 			}
 
 			// Populating root CA certificates pool
 			fh, err := os.Open(*t.CAFile)
 			if err != nil {
-				return apierr.ClientError{
-					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrClntTLSFOpenCA,
-					Err:         err,
-				}
+				return apierr.NewClientError(apierr.CodeClntTLSFOpenCA, err)
 			}
-			bs, err := ioutil.ReadAll(fh)
+			// bs, err := ioutil.ReadAll(fh) // Deprecated!
+			bs, err := io.ReadAll(fh)
 			if err != nil {
-				return apierr.ClientError{
-					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrClntTLSFOpenCA,
-					Err:         err,
-				}
+				return apierr.NewClientError(apierr.CodeClntTLSFOpenCA, err)
 			}
 
 			certCAPool := x509.NewCertPool()
 			if !certCAPool.AppendCertsFromPEM(bs) {
-				return apierr.ClientError{
-					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrClntTLSLoadCAPEM,
-					Err:         nil,
-				}
+				return apierr.NewClientError(apierr.CodeClntTLSLoadCAPEM, nil)
 			}
 			tlsConfig.RootCAs = certCAPool
 
 			// Loading certificate
 			certTLS, err := tls.LoadX509KeyPair(*t.CertFile, *t.KeyFile)
 			if err != nil {
-				return apierr.ClientError{
-					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrClntTLSLoadCertPair,
-					Err:         err,
-				}
+				return apierr.NewClientError(apierr.CodeClntTLSLoadCertPair, err)
 			}
 			// Leaf is the parsed form of the leaf certificate, which may be initialized
 			// using x509.ParseCertificate to reduce per-handshake processing.
 			certTLS.Leaf, err = x509.ParseCertificate(certTLS.Certificate[0])
 			if err != nil {
-				return apierr.ClientError{
-					CltFunction: "WithOptTLS",
-					Code:        apierr.ErrClntTLSCertParsing,
-					Err:         err,
-				}
+				return apierr.NewClientError(apierr.CodeClntTLSCertParsing, err)
 			}
 			tlsConfig.Certificates = []tls.Certificate{certTLS}
 
