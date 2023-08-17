@@ -1,4 +1,4 @@
-//go:build !integration
+//go:build unit
 
 package srljrpc_test
 
@@ -28,7 +28,7 @@ func TestDatastores(t *testing.T) {
 		{testName: "Setting datastore to RUNNING", datastore: datastores.RUNNING, expErrSet: nil, expErrGet: nil},     // should succeed
 		{testName: "Setting datastore to STATE", datastore: datastores.STATE, expErrSet: nil, expErrGet: nil},         // should succeed
 		{testName: "Setting datastore to TOOLS", datastore: datastores.TOOLS, expErrSet: nil, expErrGet: nil},         // should succeed
-		{testName: "Setting datastore to non existent datastore 100", datastore: datastores.EnumDatastores(100), expErrSet: fmt.Errorf(datastores.SetErrMsg), // should fail, unsupported datastore
+		{testName: "Setting datastore to non existent datastore foo", datastore: datastores.EnumDatastores("foo"), expErrSet: fmt.Errorf(datastores.SetErrMsg), // should fail, unsupported datastore
 			expErrGet: nil},
 	}
 
